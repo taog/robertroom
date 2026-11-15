@@ -77,6 +77,9 @@
     <span class="lbl">Kolorystyka</span>
     <div class="row" id="schemes"></div>
 
+    <span class="lbl">Kolor lameli</span>
+    <div class="row" id="slats"></div>
+
     <span class="lbl">Szafa i meble</span>
     <div class="row"><button id="doors">Otwórz drzwi szafy</button><button id="furnBtn">Ukryj meble i dekoracje</button><button id="lightBtn">Wyłącz cienie i światła</button></div>
 
@@ -375,6 +378,8 @@ const M = {
   carcass: std({ color: '#dedad3', roughness: 0.6 }),
   wood: std({ color: '#c79c6c', map: grainTex, normalMap: grainNrm, normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.5 }),
   woodDark: std({ color: '#3c2d20', roughness: 0.85 }),
+  slat: std({ color: '#c79c6c', map: grainTex, normalMap: grainNrm, normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.5 }),
+  slatDark: std({ color: '#3c2d20', roughness: 0.85 }),
   handle: std({ color: '#1e1e1e', metalness: 0.6, roughness: 0.32 }),
   interior: std({ color: '#ece8e1', roughness: 0.75 }),
   tvBody: std({ color: '#0e0e0f', roughness: 0.35, metalness: 0.4 }),
@@ -561,7 +566,7 @@ function front(parent, x0, x1, y0, y1, zf, h, mat = M.front) {
   handle(parent, h, zf);
 }
 function fluted(parent, x0, x1, y0, y1, z0, hole) {     // slatted panel facing +z, back at z0, optional rectangular hole
-  const bk = (a, b, c, d) => box(parent, M.woodDark, a, b, c, d, z0, z0 + 0.8, false);
+  const bk = (a, b, c, d) => box(parent, M.slatDark, a, b, c, d, z0, z0 + 0.8, false);
   if (hole) { bk(x0, hole.x0, y0, y1); bk(hole.x1, x1, y0, y1); bk(hole.x0, hole.x1, y0, hole.y0); bk(hole.x0, hole.x1, hole.y1, y1); }
   else bk(x0, x1, y0, y1);
   const pitch = 3, w = 2.2, dep = 1.8, n = Math.floor((x1 - x0) / pitch);
@@ -572,7 +577,7 @@ function fluted(parent, x0, x1, y0, y1, z0, hole) {     // slatted panel facing 
     const segs = hole && x + w / 2 > hole.x0 && x - w / 2 < hole.x1 ? [[y0, hole.y0], [hole.y1, y1]] : [[y0, y1]];
     for (const [a, b] of segs) if (b - a > 0.5) { const gg = new RoundedBoxGeometry(w, b - a, dep, 2, 0.5); gg.translate(x, (a + b) / 2, z0 + 0.8 + dep / 2); gs.push(gg); }
   }
-  parent.add(finish(new THREE.Mesh(mergeGeometries(gs), M.wood)));
+  parent.add(finish(new THREE.Mesh(mergeGeometries(gs), M.slat)));
 }
 const lamps = [];                       // all artificial lights (toggled by "Wyłącz cienie i światła")
 // LED strip light: a thin rectangular area light, so the light comes from the whole line.
@@ -640,7 +645,7 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   wedge(M.front, KOM, DB, yP, HANG, baseLow);           // base filler (lower)
   wedge(M.front, KOM, DB, HANG, yB);                    // base filler
   wedge(M.wood, KOM + 2.6, DB + 0.5, yB, yTop);         // top
-  wedge(M.woodDark, KOM, KOM + 2.6, yTop, yU0);         // behind the slats
+  wedge(M.slatDark, KOM, KOM + 2.6, yTop, yU0);         // behind the slats
   wedge(M.front, KOM, DU, yU0, yU1);                    // upper filler
 
   // base cabinets
@@ -956,6 +961,28 @@ SCHEMES.forEach((s, i) => {
   schemesEl.appendChild(b);
 });
 applyScheme(SCHEMES[0]);
+const SLATS = [
+  { name: 'Dąb naturalny', color: '#c79c6c' },
+  { name: 'Dąb bielony', color: '#e4d8c4' },
+  { name: 'Orzech', color: '#7a5236' },
+  { name: 'Dąb wędzony', color: '#4e3726' },
+  { name: 'Czarny mat', color: '#2b2a28' },
+];
+const slatsEl = document.getElementById('slats');
+function applySlat(c) {
+  M.slat.color.set(c.color); M.slatDark.color.set(c.color).multiplyScalar(0.32);
+  M.slat.roughness = c.name === 'Czarny mat' ? 0.7 : 0.5;
+}
+SLATS.forEach((c, i) => {
+  const b = document.createElement('button'); b.className = 'sw' + (i === 0 ? ' on' : '');
+  b.innerHTML = `<span class="chip"><i style="background:${c.color}"></i></span>${c.name}`;
+  b.addEventListener('click', () => {
+    applySlat(c); invalidate(); slatsEl.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    if (ptOn && pt) { pt.updateMaterials(); pt.reset(); }
+  });
+  slatsEl.appendChild(b);
+});
+applySlat(SLATS[0]);
 let doorsOpen = 0, doorsTarget = 0;
 const doorsBtn = document.getElementById('doors');
 doorsBtn.addEventListener('click', () => {
