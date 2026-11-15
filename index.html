@@ -90,14 +90,14 @@
     <details>
       <summary>Przyjęte wymiary i założenia</summary>
       <ul>
-        <li>Wysokość pokoju: <b>240 cm</b></li>
+        <li>Wysokość pokoju: <b>245 cm</b>; wysokość mebli (zabudowa i szafa): <b>240 cm</b></li>
         <li>Ściana skośna 469 cm = <b>275</b> zabudowa + <b>145</b> komin + <b>49</b> do narożnika</li>
         <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base molding 3 cm, szuflada dolna 25 cm, górna 45 cm, blat 2,5 cm (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm</li>
         
         <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami</li>
         <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
-        <li>Szafki górne 193–238 cm (wys. 45), otwierane do góry, klamki poziome + blenda 1,9 cm nad nimi; z lewej biała blenda w kształcie C (1,9 cm)</li>
-        <li>Szafa: 2 × 80 = 160 cm, do sufitu, gł. <b>60 cm</b>; w narożniku za zabudową fix panel 45 cm (narożnik szafy trzeba wyciąć pod komin, ok. 8 cm)</li>
+        <li>Szafki górne 193–238 cm (wys. 45), otwierane do góry, klamki poziome + blenda 1,9 cm nad nimi; z lewej biała blenda w kształcie C (1,9 cm), na wysokości lameli bok zamknięty lamelami do ściany</li>
+        <li>Szafa: 2 × 80 = 160 cm, wys. 240 cm, gł. <b>60 cm</b>; w narożniku za zabudową fix panel 45 cm (narożnik szafy trzeba wyciąć pod komin, ok. 8 cm)</li>
         <li>Kąt między ścianą TV a ścianą szafy: <b>~103°</b> (zmierzony z rzutu; w narożniku klin wypełniony blendą)</li>
         <li>Wnętrze szafy wg rys. 88: drążek + 2 półki (poziomy LED nad drążkiem i w górnej skrytce, 3 cm od krawędzi) | 4 półki + 3 szuflady wewnętrzne, pionowe LED z obu stron półek</li>
         <li>Sofa, ława, stół, dodatki – orientacyjnie wg rzutu</li>
@@ -419,7 +419,8 @@ function applyScheme(s) {
 /* =========================================================
    Room geometry (plan in cm; x → right, y → towards balcony)
    ========================================================= */
-const H = 240, T = 12;
+const H = 245, T = 12;          // room height
+const FH = 240;                  // furniture height (built-in + wardrobe)
 const TH = THREE.MathUtils.degToRad(23.7);
 const D = V(Math.cos(TH), Math.sin(TH));      // along the TV wall
 const N = V(-Math.sin(TH), Math.cos(TH));     // TV wall → into room
@@ -668,7 +669,11 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
 
   // white C-shaped end panel on the left (1.9 cm): cut back in the slat zone so the top runs through
   rpanel(baseLow, M.endWhite, -1.9, 0, 0, ROW, 0, DB + 0.6, 0.25);   // below 28 cm
-  rpanel(zg, M.endWhite, -1.9, 0, ROW, yU1, 0, VF, 0.25);            // spine along the built-out wall
+  rpanel(zg, M.endWhite, -1.9, 0, ROW, yB, 0, VF, 0.25);             // spine below the top
+  rpanel(zg, M.endWhite, -1.9, 0, yU0, yU1, 0, VF, 0.25);            // spine at the upper cabinets
+  // at the height of the slats the end of the built-out wall is closed with slats, back to the real wall
+  const lg = new THREE.Group(); lg.rotation.y = -Math.PI / 2; zg.add(lg);
+  fluted(lg, 0, VF, yB, yU0, 0);
   rpanel(zg, M.endWhite, -1.9, 0, ROW, yB, VF - 0.5, DB + 0.6, 0.25); // lower arm (under the top)
   rpanel(zg, M.endWhite, -1.9, 0, yU0, yU1, VF - 0.5, DB, 0.25);      // upper arm
   // 1.9 cm filler on top of the upper cabinets (up to the ceiling)
@@ -704,15 +709,15 @@ const doorL = new THREE.Group(), doorR = new THREE.Group();
 {
   const sg = frame(world, P2, R);
   const SD = SZ_D, SX0 = 45, SX1 = 205, yP = 3, MID = 125;
-  box(sg, M.interior, 0, SX1, 0, H, 0, 1.8);
-  box(sg, M.interior, 0, 1.8, yP, H, 0, SD - 1.9);
-  rpanel(sg, M.front, SX1 - 1.8, SX1, 0, H, 0, SD - 1.95, 0.25);
-  box(sg, M.interior, SX0, SX0 + 1.8, yP, H, 0, SD - 1.9);
-  box(sg, M.interior, MID - 0.9, MID + 0.9, yP, H, 0, SD - 1.9);
+  box(sg, M.interior, 0, SX1, 0, FH, 0, 1.8);
+  box(sg, M.interior, 0, 1.8, yP, FH, 0, SD - 1.9);
+  rpanel(sg, M.front, SX1 - 1.8, SX1, 0, FH, 0, SD - 1.95, 0.25);
+  box(sg, M.interior, SX0, SX0 + 1.8, yP, FH, 0, SD - 1.9);
+  box(sg, M.interior, MID - 0.9, MID + 0.9, yP, FH, 0, SD - 1.9);
   box(sg, M.interior, 0, SX1, yP, yP + 1.8, 0, SD - 1.9);
-  box(sg, M.interior, 0, SX1, H - 1.8, H, 0, SD - 1.9);
+  box(sg, M.interior, 0, SX1, FH - 1.8, FH, 0, SD - 1.9);
   box(sg, M.front, 0, SX1 - 1.8, 0, yP, 1.8, SD + 0.6);
-  front(sg, 0, SX0, yP, H, SD, null);                 // fixed corner panel
+  front(sg, 0, SX0, yP, FH, SD, null);                 // fixed corner panel
 
   const lx0 = SX0 + 1.8, lx1 = MID - 0.9;
   box(sg, M.interior, lx0, lx1, 43, 44.8, 1.8, SD - 2);
@@ -721,8 +726,8 @@ const doorL = new THREE.Group(), doorR = new THREE.Group();
   box(sg, M.led, lx0 + 1, lx1 - 1, 197.4, 198, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
   lineLight(sg, '#ffe0b0', 130, lx1 - lx0 - 2, 1.2, (lx0 + lx1) / 2, 197.3, SD - 5.6, DOWN);
   // second horizontal LED strip in the top compartment, along the top front edge (3 cm back)
-  box(sg, M.led, lx0 + 1, lx1 - 1, H - 2.4, H - 1.8, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
-  lineLight(sg, '#ffe0b0', 110, lx1 - lx0 - 2, 1.2, (lx0 + lx1) / 2, H - 2.5, SD - 5.6, DOWN);
+  box(sg, M.led, lx0 + 1, lx1 - 1, FH - 2.4, FH - 1.8, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
+  lineLight(sg, '#ffe0b0', 110, lx1 - lx0 - 2, 1.2, (lx0 + lx1) / 2, FH - 2.5, SD - 5.6, DOWN);
   const rod = finish(new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, lx1 - lx0, 12), M.handle));
   rod.rotation.z = Math.PI / 2; rod.position.set((lx0 + lx1) / 2, 188, SD / 2); sg.add(rod);
   const cols = ['#2f3e55', '#d1cabd', '#7d8b74', '#3a3a3a', '#b46a55', '#e6e1d7', '#55606e', '#c2a27a'];
@@ -736,9 +741,9 @@ const doorL = new THREE.Group(), doorR = new THREE.Group();
   const rx0 = MID + 0.9, rx1 = SX1 - 1.8;
   for (const y of [84, 122, 160, 198]) box(sg, M.interior, rx0, rx1, y, y + 1.8, 1.8, SD - 2);
   // vertical LED strips on both sides of the shelf section, 3 cm back from the front edge
-  for (const [a, b] of [[rx0, rx0 + 0.5], [rx1 - 0.5, rx1]]) box(sg, M.led, a, b, 86, H - 3, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
-  lineLight(sg, '#ffe0b0', 110, 1.2, H - 3 - 86, rx0 + 0.6, (86 + H - 3) / 2, SD - 5.6, 0, -Math.PI / 2);   // shines to the right
-  lineLight(sg, '#ffe0b0', 110, 1.2, H - 3 - 86, rx1 - 0.6, (86 + H - 3) / 2, SD - 5.6, 0, Math.PI / 2);    // shines to the left
+  for (const [a, b] of [[rx0, rx0 + 0.5], [rx1 - 0.5, rx1]]) box(sg, M.led, a, b, 86, FH - 3, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
+  lineLight(sg, '#ffe0b0', 110, 1.2, FH - 3 - 86, rx0 + 0.6, (86 + FH - 3) / 2, SD - 5.6, 0, -Math.PI / 2);   // shines to the right
+  lineLight(sg, '#ffe0b0', 110, 1.2, FH - 3 - 86, rx1 - 0.6, (86 + FH - 3) / 2, SD - 5.6, 0, Math.PI / 2);    // shines to the left
   [[yP + 1.8, 34], [34, 58], [58, 82]].forEach(([y0, y1]) => {
     rpanel(sg, M.carcass, rx0 + 0.5, rx1 - 0.5, y0 + 0.3, y1 - 0.3, SD - 6, SD - 4, 0.2);
     box(sg, M.black, (rx0 + rx1) / 2 - 7, (rx0 + rx1) / 2 + 7, y1 - 4, y1 - 2.5, SD - 4, SD - 3.9, false);
@@ -751,9 +756,9 @@ const doorL = new THREE.Group(), doorR = new THREE.Group();
     }
   });
   doorL.position.set(SX0, 0, SD); sg.add(doorL);
-  front(doorL, 0, MID - SX0, yP, H, 0, { type: 'v', x: MID - SX0 - 4, y0: 100, y1: 140 });
+  front(doorL, 0, MID - SX0, yP, FH, 0, { type: 'v', x: MID - SX0 - 4, y0: 100, y1: 140 });
   doorR.position.set(SX1, 0, SD); sg.add(doorR);
-  front(doorR, -(SX1 - MID), 0, yP, H, 0, { type: 'v', x: -(SX1 - MID) + 4, y0: 100, y1: 140 });
+  front(doorR, -(SX1 - MID), 0, yP, FH, 0, { type: 'v', x: -(SX1 - MID) + 4, y0: 100, y1: 140 });
 }
 
 /* =========================================================
