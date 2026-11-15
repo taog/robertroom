@@ -94,7 +94,7 @@
         <li>Ściana skośna 469 cm = <b>275</b> zabudowa + <b>145</b> komin + <b>49</b> do narożnika</li>
         <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base molding 3 cm, szuflada dolna 25 cm, górna 45 cm, blat 2,5 cm (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm</li>
         
-        <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami</li>
+        <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami; LED dookoła TV we wnęce</li>
         <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
         <li>Szafki górne 193–238 cm (wys. 45), otwierane do góry, klamki poziome + blenda 1,9 cm nad nimi; z lewej biała blenda w kształcie C (1,9 cm), na wysokości lameli bok zamknięty lamelami do ściany</li>
         <li>Szafa: fix 30 + 2 × 87,5 cm, wys. 240 cm, gł. <b>60 cm</b>; lewa część sięga w narożnik za zabudową (wnętrze ok. 115 cm); narożnik wyciąć pod komin (ok. 8 cm)</li>
@@ -392,6 +392,7 @@ const M = {
   frame: std({ color: '#2f3236', roughness: 0.45, metalness: 0.3 }),
   white: std({ color: '#f6f5f2', roughness: 0.55 }),
   endWhite: std({ color: '#efede8', roughness: 0.42 }),
+  lining: std({ color: '#d8d4cd', roughness: 0.8 }),
   concrete: std({ color: '#c4bfb7', roughness: 0.95 }),
   tableWood: std({ color: '#b98e60', map: grainTex, normalMap: grainNrm, normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.45 }),
   chair: std({ color: '#d2c9b9', roughness: 1, normalMap: fabricNrm, normalScale: new THREE.Vector2(0.5, 0.5) }),
@@ -606,10 +607,20 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   box(zg, M.wall, hole.x0, hole.x1, hole.y1, yU0, 0, KOM);
   const VF = KOM + 2.6;                                  // face of the slats
   box(zg, M.black, hole.x0, hole.x1, hole.y0, hole.y1, 0, 0.6);          // recess lining
-  box(zg, M.black, hole.x0, hole.x0 + 0.6, hole.y0, hole.y1, 0, VF);
-  box(zg, M.black, hole.x1 - 0.6, hole.x1, hole.y0, hole.y1, 0, VF);
-  box(zg, M.black, hole.x0, hole.x1, hole.y0, hole.y0 + 0.6, 0, VF);
-  box(zg, M.black, hole.x0, hole.x1, hole.y1 - 0.6, hole.y1, 0, VF);
+  box(zg, M.lining, hole.x0, hole.x0 + 0.6, hole.y0, hole.y1, 0, VF);
+  box(zg, M.lining, hole.x1 - 0.6, hole.x1, hole.y0, hole.y1, 0, VF);
+  box(zg, M.lining, hole.x0, hole.x1, hole.y0, hole.y0 + 0.6, 0, VF);
+  box(zg, M.lining, hole.x0, hole.x1, hole.y1 - 0.6, hole.y1, 0, VF);
+  // LED strip all around the TV, on the sides of the recess near the back – glows through the gap
+  box(zg, M.led, hole.x0 + 0.6, hole.x0 + 1.0, hole.y0 + 1, hole.y1 - 1, 2, 3.2, false);
+  box(zg, M.led, hole.x1 - 1.0, hole.x1 - 0.6, hole.y0 + 1, hole.y1 - 1, 2, 3.2, false);
+  box(zg, M.led, hole.x0 + 1, hole.x1 - 1, hole.y0 + 0.6, hole.y0 + 1.0, 2, 3.2, false);
+  box(zg, M.led, hole.x0 + 1, hole.x1 - 1, hole.y1 - 1.0, hole.y1 - 0.6, 2, 3.2, false);
+  const tvLed = '#ffd9a8';
+  lineLight(zg, tvLed, 70, 1.2, HH - 2, hole.x0 + 1.1, tvY, 2.6, 0, -Math.PI / 2);
+  lineLight(zg, tvLed, 70, 1.2, HH - 2, hole.x1 - 1.1, tvY, 2.6, 0, Math.PI / 2);
+  lineLight(zg, tvLed, 70, HW - 2, 1.2, tvC, hole.y0 + 1.1, 2.6, Math.PI / 2);
+  lineLight(zg, tvLed, 70, HW - 2, 1.2, tvC, hole.y1 - 1.1, 2.6, -Math.PI / 2);
 
   // the wardrobe front is not perpendicular to this wall: fill the wedge up to it
   const q0u = 469 - SZ_D * Rv, q0v = SZ_D * Ru;
