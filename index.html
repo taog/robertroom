@@ -116,13 +116,18 @@ const app = document.getElementById('app');
 const statusEl = document.getElementById('status');
 const DEFAULT_HINT = 'Przeciągnij – obrót · kółko – zoom · prawy przycisk – przesuwanie';
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-const DPR = Math.min(window.devicePixelRatio, 2);
+const DPR = Math.min(window.devicePixelRatio, 1.5);
 renderer.setPixelRatio(DPR);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NeutralToneMapping;
 renderer.toneMappingExposure = 0.95;
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.autoUpdate = false;          // shadows are re-rendered only when something in the scene changes
+renderer.shadowMap.needsUpdate = true;
+// render on demand: nothing is drawn while the view is still
+let dirty = 2, lastMove = 0, hqPending = true;
+function invalidate(shadows) { dirty = Math.max(dirty, 1); hqPending = true; if (shadows) renderer.shadowMap.needsUpdate = true; }
 renderer.shadowMap.type = THREE.PCFShadowMap;
 app.appendChild(renderer.domElement);
 document.getElementById('loading').remove();
@@ -806,8 +811,8 @@ const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(window
 composer.setPixelRatio(DPR);
 composer.addPass(new RenderPass(scene, camera));
 const gtao = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight);
-gtao.updateGtaoMaterial({ radius: 0.4, distanceExponent: 1.5, thickness: 1, scale: 1.1, samples: 16, distanceFallOff: 1 });
-gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, radiusExponent: 1, rings: 2, samples: 16 });
+gtao.updateGtaoMaterial({ radius: 0.4, distanceExponent: 1.5, thickness: 1, scale: 1.1, samples: 12, distanceFallOff: 1 });
+gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, radiusExponent: 1, rings: 2, samples: 8 });
 gtao.blendIntensity = 0.9;
 composer.addPass(gtao);
 composer.addPass(new OutputPass());
@@ -881,11 +886,11 @@ async function startPT() {
   ptBusy = false;
 }
 function stopPT() {
-  ptOn = false; scene.environmentIntensity = 0.55; ptBtn.textContent = 'Render fotorealistyczny'; ptBtn.classList.remove('on');
+  ptOn = false; invalidate(); scene.environmentIntensity = 0.55; ptBtn.textContent = 'Render fotorealistyczny'; ptBtn.classList.remove('on');
   statusEl.textContent = DEFAULT_HINT;
 }
 ptBtn.addEventListener('click', () => ptOn ? stopPT() : startPT());
-controls.addEventListener('change', () => { if (ptOn && pt) pt.updateCamera(); });
+controls.addEventListener('change', () => { lastMove = performance.now(); invalidate(); if (ptOn && pt) pt.updateCamera(); });
 
 /* =========================================================
    UI
@@ -900,7 +905,7 @@ SCHEMES.forEach((s, i) => {
   const b = document.createElement('button'); b.className = 'sw' + (i === 0 ? ' on' : '');
   b.innerHTML = `<span class="chip"><i style="background:${s.front}"></i><i style="background:${s.wood}"></i></span>${s.name}`;
   b.addEventListener('click', () => {
-    applyScheme(s); schemesEl.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    applyScheme(s); invalidate(); schemesEl.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
     if (ptOn && pt) { pt.updateMaterials(); pt.reset(); }
   });
   schemesEl.appendChild(b);
@@ -925,14 +930,14 @@ lightBtn.addEventListener('click', () => {
   M.led.emissiveIntensity = flat ? 0 : 3;
   M.downlight.emissiveIntensity = flat ? 0 : 6;
   lightBtn.textContent = flat ? 'Włącz cienie i światła' : 'Wyłącz cienie i światła';
-  lightBtn.classList.toggle('on', flat);
+  lightBtn.classList.toggle('on', flat); invalidate(true);
 });
 const hangBtn = document.getElementById('hangBtn');
 hangBtn.addEventListener('click', () => {
   if (ptOn) stopPT();
   baseLow.visible = !baseLow.visible;
   hangBtn.textContent = baseLow.visible ? 'Szafki dolne wiszące (28 cm nad podłogą)' : 'Szafki dolne stojące (na base molding)';
-  hangBtn.classList.toggle('on', !baseLow.visible);
+  hangBtn.classList.toggle('on', !baseLow.visible); invalidate(true);
 });
 const furnBtn = document.getElementById('furnBtn');
 furnBtn.addEventListener('click', () => {
@@ -940,7 +945,7 @@ furnBtn.addEventListener('click', () => {
   furniture.visible = !furniture.visible;
   decorItems.forEach(m => { m.visible = furniture.visible; });
   furnBtn.textContent = furniture.visible ? 'Ukryj meble i dekoracje' : 'Pokaż meble i dekoracje';
-  furnBtn.classList.toggle('on', !furniture.visible);
+  furnBtn.classList.toggle('on', !furniture.visible); invalidate(true);
 });
 document.getElementById('minBtn').addEventListener('click', (e) => {
   const p = document.getElementById('panel'); p.classList.toggle('min');
@@ -959,7 +964,9 @@ function tick(now) {
     camera.position.lerpVectors(anim.p0, anim.p1, e); controls.target.lerpVectors(anim.t0, anim.t1, e);
     camera.fov = anim.f0 + (anim.f1 - anim.f0) * e; camera.updateProjectionMatrix();
     if (anim.t >= 1) anim = null;
+    lastMove = now; invalidate();
   }
+  if (Math.abs(doorsTarget - doorsOpen) > 0.0005) invalidate(true);
   doorsOpen += (doorsTarget - doorsOpen) * Math.min(1, dt * 5);
   doorL.rotation.y = -doorsOpen * THREE.MathUtils.degToRad(88);
   doorR.rotation.y = doorsOpen * THREE.MathUtils.degToRad(100);
@@ -971,22 +978,27 @@ function tick(now) {
         : `Render fotorealistyczny: ${Math.floor(pt.samples)} próbek${pt.samples >= ptMax ? ' – gotowe' : ' – obraz się wygładza'} · zrób zrzut ekranu, by zapisać`;
     }
   } else {
-    updateCutaways();
-    composer.render();
+    const moving = now - lastMove < 200;
+    if (dirty > 0 || (hqPending && !moving)) {
+      gtao.enabled = !flat && !moving;           // ambient occlusion only in the still frame
+      updateCutaways();
+      composer.render();
+      dirty = 0; if (!moving) hqPending = false;
+    }
   }
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
 
 // testing hooks
-window.__goTo = (n) => { const v = VIEWS[n]; camera.position.copy(v.pos); controls.target.copy(v.target); camera.fov = v.fov || 55; camera.updateProjectionMatrix(); controls.update(); };
-window.__doors = (o) => { doorsTarget = o; doorsOpen = o; };
+window.__goTo = (n) => { const v = VIEWS[n]; camera.position.copy(v.pos); controls.target.copy(v.target); camera.fov = v.fov || 55; camera.updateProjectionMatrix(); controls.update(); invalidate(); };
+window.__doors = (o) => { doorsTarget = o; doorsOpen = o; invalidate(true); };
 window.__pt = () => startPT();
 window.__ptSamples = () => pt ? pt.samples : -1;
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); gtao.setSize(innerWidth, innerHeight);
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); gtao.setSize(innerWidth, innerHeight); invalidate();
   if (ptOn && pt) pt.updateCamera();
 });
 </script>
