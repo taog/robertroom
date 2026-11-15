@@ -97,7 +97,7 @@
         <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami</li>
         <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
         <li>Szafki górne 193–238 cm (wys. 45), otwierane do góry, klamki poziome + blenda 1,9 cm nad nimi; z lewej biała blenda w kształcie C (1,9 cm), na wysokości lameli bok zamknięty lamelami do ściany</li>
-        <li>Szafa: 2 × 80 = 160 cm, wys. 240 cm, gł. <b>60 cm</b>; w narożniku za zabudową fix panel 45 cm (narożnik szafy trzeba wyciąć pod komin, ok. 8 cm)</li>
+        <li>Szafa: fix 30 + 2 × 87,5 cm, wys. 240 cm, gł. <b>60 cm</b>; lewa część sięga w narożnik za zabudową (wnętrze ok. 115 cm); narożnik wyciąć pod komin (ok. 8 cm)</li>
         <li>Kąt między ścianą TV a ścianą szafy: <b>~103°</b> (zmierzony z rzutu; w narożniku klin wypełniony blendą)</li>
         <li>Wnętrze szafy wg rys. 88: drążek + 2 półki (poziomy LED nad drążkiem i w górnej skrytce, 3 cm od krawędzi) | 4 półki + 3 szuflady wewnętrzne, pionowe LED z obu stron półek</li>
         <li>Sofa, ława, stół, dodatki – orientacyjnie wg rzutu</li>
@@ -708,35 +708,34 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
 const doorL = new THREE.Group(), doorR = new THREE.Group();
 {
   const sg = frame(world, P2, R);
-  const SD = SZ_D, SX0 = 45, SX1 = 205, yP = 3, MID = 125;
+  const SD = SZ_D, SX0 = 30, SX1 = 205, yP = 3, MID = 117.5;   // fix 30 + two doors 87.5
   box(sg, M.interior, 0, SX1, 0, FH, 0, 1.8);
   box(sg, M.interior, 0, 1.8, yP, FH, 0, SD - 1.9);
   rpanel(sg, M.front, SX1 - 1.8, SX1, 0, FH, 0, SD - 1.95, 0.25);
-  box(sg, M.interior, SX0, SX0 + 1.8, yP, FH, 0, SD - 1.9);
   box(sg, M.interior, MID - 0.9, MID + 0.9, yP, FH, 0, SD - 1.9);
   box(sg, M.interior, 0, SX1, yP, yP + 1.8, 0, SD - 1.9);
   box(sg, M.interior, 0, SX1, FH - 1.8, FH, 0, SD - 1.9);
   box(sg, M.front, 0, SX1 - 1.8, 0, yP, 1.8, SD + 0.6);
   front(sg, 0, SX0, yP, FH, SD, null);                 // fixed corner panel
 
-  const lx0 = SX0 + 1.8, lx1 = MID - 0.9;
+  const lx0 = 1.8, lx1 = MID - 0.9;      // left section runs right into the corner behind the fixed panel
   box(sg, M.interior, lx0, lx1, 43, 44.8, 1.8, SD - 2);
   box(sg, M.interior, lx0, lx1, 198, 199.8, 1.8, SD - 2);
   // horizontal LED strip under the top shelf, 3 cm back from its front edge
-  box(sg, M.led, lx0 + 1, lx1 - 1, 197.4, 198, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
-  lineLight(sg, '#ffe0b0', 130, lx1 - lx0 - 2, 1.2, (lx0 + lx1) / 2, 197.3, SD - 5.6, DOWN);
+  box(sg, M.led, SX0 - 10, lx1 - 1, 197.4, 198, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
+  lineLight(sg, '#ffe0b0', 130, lx1 - SX0 + 9, 1.2, (SX0 - 10 + lx1 - 1) / 2, 197.3, SD - 5.6, DOWN);
   // second horizontal LED strip in the top compartment, along the top front edge (3 cm back)
-  box(sg, M.led, lx0 + 1, lx1 - 1, FH - 2.4, FH - 1.8, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
-  lineLight(sg, '#ffe0b0', 110, lx1 - lx0 - 2, 1.2, (lx0 + lx1) / 2, FH - 2.5, SD - 5.6, DOWN);
+  box(sg, M.led, SX0 - 10, lx1 - 1, FH - 2.4, FH - 1.8, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
+  lineLight(sg, '#ffe0b0', 110, lx1 - SX0 + 9, 1.2, (SX0 - 10 + lx1 - 1) / 2, FH - 2.5, SD - 5.6, DOWN);
   const rod = finish(new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, lx1 - lx0, 12), M.handle));
   rod.rotation.z = Math.PI / 2; rod.position.set((lx0 + lx1) / 2, 188, SD / 2); sg.add(rod);
-  const cols = ['#2f3e55', '#d1cabd', '#7d8b74', '#3a3a3a', '#b46a55', '#e6e1d7', '#55606e', '#c2a27a'];
-  for (let i = 0; i < 8; i++) {
-    const x = lx0 + 6 + i * 9.3, len = 70 + (i * 37 % 4) * 9;
+  const cols = ['#2f3e55', '#d1cabd', '#7d8b74', '#3a3a3a', '#b46a55', '#e6e1d7', '#55606e', '#c2a27a', '#8a6f5a', '#d9d4ca', '#46536a'];
+  for (let i = 0; i < 11; i++) {
+    const x = lx0 + 8 + i * 9.8, len = 70 + (i * 37 % 4) * 9;
     decor(box(sg, M.tableWood, x - 0.5, x + 0.5, 182, 187, SD / 2 - 21, SD / 2 + 21));
     decor(rpanel(sg, std({ color: cols[i], roughness: 1, normalMap: fabricNrm }), x - 2, x + 2, 182 - len, 183, SD / 2 - 20, SD / 2 + 20, 1.5));
   }
-  decor(rpanel(sg, M.pot, lx0 + 4, lx0 + 36, 199.8, 224, 6, 42, 1)); decor(rpanel(sg, M.pot, lx0 + 40, lx0 + 72, 199.8, 224, 6, 42, 1));
+  for (const bx of [8, 44, 80]) decor(rpanel(sg, M.pot, lx0 + bx, lx0 + bx + 32, 199.8, 224, 6, 42, 1));
 
   const rx0 = MID + 0.9, rx1 = SX1 - 1.8;
   for (const y of [84, 122, 160, 198]) box(sg, M.interior, rx0, rx1, y, y + 1.8, 1.8, SD - 2);
@@ -1045,7 +1044,7 @@ function tick(now) {
   }
   if (Math.abs(doorsTarget - doorsOpen) > 0.0005) invalidate(true);
   doorsOpen += (doorsTarget - doorsOpen) * Math.min(1, dt * 5);
-  doorL.rotation.y = -doorsOpen * THREE.MathUtils.degToRad(88);
+  doorL.rotation.y = -doorsOpen * THREE.MathUtils.degToRad(90);
   doorR.rotation.y = doorsOpen * THREE.MathUtils.degToRad(100);
   controls.update();
   if (ptOn && pt) {
