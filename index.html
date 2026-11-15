@@ -32,6 +32,9 @@
   #status { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); font-size:12px; color:#3b3f45; background:rgba(255,255,255,.82);
     padding:6px 12px; border-radius:20px; white-space:nowrap; max-width:calc(100vw - 24px); overflow:hidden; text-overflow:ellipsis; }
   #loading { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:var(--mute); font-size:14px; }
+  .slider { display:block; font-size:12px; color:var(--mute); margin-top:8px; }
+  .slider b { color:var(--ink); font-weight:600; }
+  .slider input { width:100%; margin-top:4px; accent-color:#8a6a45; }
   #cad { position:fixed; inset:0; background:rgba(30,32,36,.55); display:none; z-index:20; }
   #cad.open { display:flex; flex-direction:column; }
   #cadBar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:10px 12px; background:#fff; border-bottom:1px solid var(--line); }
@@ -79,6 +82,8 @@
 
     <span class="lbl">Kolor lameli i blatu</span>
     <div class="row" id="slats"></div>
+    <label class="slider">Przyciemnienie: drzwi, lamele, blat <b id="darkVal">0%</b>
+      <input type="range" id="dark" min="0" max="100" value="0" step="1"></label>
 
     <span class="lbl">Szafa i meble</span>
     <div class="row"><button id="doors">Otwórz drzwi szafy</button><button id="furnBtn">Ukryj meble i dekoracje</button><button id="lightBtn">Wyłącz cienie i światła</button></div>
@@ -1081,10 +1086,23 @@ const SLATS = [
   { name: 'Jak drzwi (orzech)', color: '#b4805e' },
 ];
 const slatsEl = document.getElementById('slats');
-function applySlat(c) {
-  M.slat.color.set(c.color); M.slatDark.color.set(c.color).multiplyScalar(0.32);
-  M.slat.roughness = c.name === 'Czarny mat' ? 0.7 : 0.5;
+let curSlat = null, darkK = 0;
+const DOOR_BASE = new THREE.Color(M.doorWood.color.getHex());
+function applyWoodTone() {                      // one slider darkens the door, the slats and the top together
+  const f = 1 - darkK * 0.8;
+  M.slat.color.set(curSlat.color).multiplyScalar(f); M.slatDark.color.set(curSlat.color).multiplyScalar(0.32 * f);
+  M.doorWood.color.copy(DOOR_BASE).multiplyScalar(f);
 }
+function applySlat(c) {
+  curSlat = c; M.slat.roughness = c.name === 'Czarny mat' ? 0.7 : 0.5;
+  applyWoodTone();
+}
+const darkEl = document.getElementById('dark'), darkVal = document.getElementById('darkVal');
+darkEl.addEventListener('input', () => {
+  darkK = darkEl.value / 100; darkVal.textContent = darkEl.value + '%';
+  applyWoodTone(); invalidate();
+  if (ptOn && pt) { pt.updateMaterials(); pt.reset(); }
+});
 SLATS.forEach((c, i) => {
   const b = document.createElement('button'); b.className = 'sw' + (i === 0 ? ' on' : '');
   b.innerHTML = `<span class="chip"><i style="background:${c.color}"></i></span>${c.name}`;
