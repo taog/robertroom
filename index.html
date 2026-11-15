@@ -32,6 +32,15 @@
   #status { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); font-size:12px; color:#3b3f45; background:rgba(255,255,255,.82);
     padding:6px 12px; border-radius:20px; white-space:nowrap; max-width:calc(100vw - 24px); overflow:hidden; text-overflow:ellipsis; }
   #loading { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:var(--mute); font-size:14px; }
+  #cad { position:fixed; inset:0; background:rgba(30,32,36,.55); display:none; z-index:20; }
+  #cad.open { display:flex; flex-direction:column; }
+  #cadBar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:10px 12px; background:#fff; border-bottom:1px solid var(--line); }
+  #cadBar .sp { flex:1; }
+  #cadBar a { font-size:13px; color:var(--ink); text-decoration:none; border:1px solid var(--line); padding:6px 10px; border-radius:8px; background:#fff; }
+  #cadView { flex:1; overflow:hidden; position:relative; background:#f4f3f0; cursor:grab; touch-action:none; }
+  #cadView.drag { cursor:grabbing; }
+  #cadImg { position:absolute; left:0; top:0; transform-origin:0 0; background:#fff; box-shadow:0 4px 24px rgba(0,0,0,.15); user-select:none; -webkit-user-drag:none; }
+  #cadNote { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); font-size:12px; background:rgba(255,255,255,.9); padding:5px 10px; border-radius:16px; color:#3b3f45; }
   @media (max-width:640px) {
     #panel { top:auto; bottom:44px; left:10px; right:10px; width:auto; padding:10px; max-height:55vh; overflow:auto; }
     .sub { display:none; }
@@ -76,6 +85,7 @@
 
     <span class="lbl">Render</span>
     <button id="ptBtn" class="primary">Render fotorealistyczny</button>
+    <div class="row" style="margin-top:6px"><button id="cadBtn" style="width:100%">Plany CAD (rzut, widoki, przekrój)</button></div>
 
     <details>
       <summary>Przyjęte wymiary i założenia</summary>
@@ -94,6 +104,21 @@
       </ul>
     </details>
   </div>
+</div>
+<div id="cad">
+  <div id="cadBar">
+    <button data-sheet="1" class="on">Rzut</button>
+    <button data-sheet="2">Widok A – stojące</button>
+    <button data-sheet="3">Widok A2 – wiszące</button>
+    <button data-sheet="4">Szafa</button>
+    <button data-sheet="5">Przekrój</button>
+    <span class="sp"></span>
+    <button id="cadOut">−</button><button id="cadFit">Dopasuj</button><button id="cadIn">+</button>
+    <a href="cad/salon_zabudowa_szafa.pdf" target="_blank" rel="noopener">PDF</a>
+    <a id="cadDxf" href="cad/salon_zabudowa_szafa.dxf" target="_blank" rel="noopener">DXF</a>
+    <button id="cadClose">Zamknij ✕</button>
+  </div>
+  <div id="cadView"><img id="cadImg" alt="Rysunek CAD"><div id="cadNote">Wymiary w mm · przeciągnij, by przesunąć · kółko / szczypanie – zoom</div></div>
 </div>
 <div id="status">Przeciągnij – obrót · kółko – zoom · prawy przycisk – przesuwanie</div>
 
@@ -954,6 +979,50 @@ document.getElementById('minBtn').addEventListener('click', (e) => {
   const p = document.getElementById('panel'); p.classList.toggle('min');
   e.target.textContent = p.classList.contains('min') ? '+' : '–';
 });
+
+/* =========================================================
+   CAD sheets viewer
+   ========================================================= */
+{
+  const modal = document.getElementById('cad'), view = document.getElementById('cadView'), img = document.getElementById('cadImg');
+  let sc = 1, tx = 0, ty = 0;
+  const apply = () => { img.style.transform = `translate(${tx}px,${ty}px) scale(${sc})`; };
+  const fit = () => {
+    const vw = view.clientWidth, vh = view.clientHeight, iw = img.naturalWidth || 1600, ih = img.naturalHeight || 1100;
+    sc = Math.min(vw / iw, vh / ih) * 0.96; tx = (vw - iw * sc) / 2; ty = (vh - ih * sc) / 2; apply();
+  };
+  const zoomAt = (f, cx, cy) => { const ns = Math.min(Math.max(sc * f, 0.05), 20); tx = cx - (cx - tx) * ns / sc; ty = cy - (cy - ty) * ns / sc; sc = ns; apply(); };
+  function show(n) {
+    document.querySelectorAll('#cadBar [data-sheet]').forEach(b => b.classList.toggle('on', b.dataset.sheet === String(n)));
+    img.onload = fit; img.src = `cad/sheet_${n}.svg`;
+  }
+  // the DXF file is only hosted on GitHub; hide the link where it is not available
+  const dxf = document.getElementById('cadDxf');
+  fetch(dxf.getAttribute('href'), { method: 'HEAD' }).then(r => { if (!r.ok) dxf.style.display = 'none'; }).catch(() => { dxf.style.display = 'none'; });
+  document.getElementById('cadBtn').addEventListener('click', () => { if (ptOn) stopPT(); modal.classList.add('open'); show(1); });
+  document.getElementById('cadClose').addEventListener('click', () => { modal.classList.remove('open'); invalidate(); });
+  document.querySelectorAll('#cadBar [data-sheet]').forEach(b => b.addEventListener('click', () => show(b.dataset.sheet)));
+  document.getElementById('cadFit').addEventListener('click', fit);
+  document.getElementById('cadIn').addEventListener('click', () => zoomAt(1.4, view.clientWidth / 2, view.clientHeight / 2));
+  document.getElementById('cadOut').addEventListener('click', () => zoomAt(1 / 1.4, view.clientWidth / 2, view.clientHeight / 2));
+  view.addEventListener('wheel', (e) => { e.preventDefault(); const r = view.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  const ptrs = new Map(); let pinch = 0;
+  view.addEventListener('pointerdown', (e) => { view.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); view.classList.add('drag'); });
+  view.addEventListener('pointermove', (e) => {
+    if (!ptrs.has(e.pointerId)) return;
+    const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 1) { tx += e.clientX - prev.x; ty += e.clientY - prev.y; apply(); }
+    else if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), r = view.getBoundingClientRect();
+      if (pinch) zoomAt(d / pinch, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+      pinch = d;
+    }
+  });
+  const up = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0; if (!ptrs.size) view.classList.remove('drag'); };
+  view.addEventListener('pointerup', up); view.addEventListener('pointercancel', up);
+  addEventListener('resize', () => { if (modal.classList.contains('open')) fit(); });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) { modal.classList.remove('open'); invalidate(); } });
+}
 
 /* =========================================================
    Loop
