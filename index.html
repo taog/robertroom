@@ -92,7 +92,7 @@
       <ul>
         <li>Wysokość pokoju: <b>245 cm</b>; wysokość mebli (zabudowa i szafa): <b>240 cm</b></li>
         <li>Ściana skośna 469 cm = <b>275</b> zabudowa + <b>145</b> komin + <b>49</b> do narożnika</li>
-        <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base molding 3 cm, szuflada dolna 25 cm, górna 45 cm, blat 2,5 cm (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm</li>
+        <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base 8 cm, dwie równe szuflady po 32,5 cm, blat 2,5 cm (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm; pod szafą ten sam base 8 cm</li>
         
         <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami; LED dookoła TV we wnęce</li>
         <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
@@ -380,7 +380,7 @@ const M = {
   tvBody: std({ color: '#0e0e0f', roughness: 0.35, metalness: 0.4 }),
   tvScreen: new THREE.MeshPhysicalMaterial({ color: '#050505', emissive: '#ffffff', emissiveMap: screenTex, emissiveIntensity: 0.9, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.05 }),
   glass: new THREE.MeshPhysicalMaterial({ color: '#c9d3d5', transparent: true, opacity: 0.12, roughness: 0.03, metalness: 0, depthWrite: false }),
-  smoke: new THREE.MeshPhysicalMaterial({ color: '#2f2d2b', transparent: true, opacity: 0.45, roughness: 0.06, metalness: 0.1, depthWrite: false }),
+  smoke: new THREE.MeshPhysicalMaterial({ color: '#151413', transparent: true, opacity: 0.78, roughness: 0.05, metalness: 0.15, depthWrite: false }),   // tinted glass
   led: std({ color: '#000', emissive: '#ffd9a8', emissiveIntensity: 3 }),
   downlight: std({ color: '#000', emissive: '#fff1dc', emissiveIntensity: 6 }),
   fabric: std({ color: '#a6aa9d', roughness: 1, normalMap: fabricNrm, normalScale: new THREE.Vector2(0.5, 0.5) }),
@@ -594,7 +594,7 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
 {
   const zg = frame(world, P1, D);
   const UZ = 275, UK = 420, DB = 41, DU = 41, KOM = 20;   // whole built-in 41 cm deep from the real wall
-  const yP = 3, ROW = 28, yB = 73, yTop = 75.5, yU0 = 193, yU1 = 238, cw = UZ / 3;   // base molding 3 | drawers 25 + 45 | top 2.5 | slats 117.5 | uppers 45
+  const yP = 8, yB = 73, ROW = (yP + yB) / 2, HANG = 28, yTop = 75.5, yU0 = 193, yU1 = 238, cw = UZ / 3;   // base 8 | two equal drawers 32.5 | top 2.5 | slats 117.5 | uppers 45; wall-hung variant from 28
 
   // TV wall built out 20 cm, flush with the chimney, with a recess for the TV (152 x 96.5 cm)
   const tvC = UZ / 2, tvY = (yTop + yU0) / 2, HW = 152, HH = 96.5;
@@ -635,10 +635,10 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   }
   zg.add(baseLow);                                     // parts below 28 cm: hidden when the base units hang on the wall
   zg.add(baseHang);
-  box(baseHang, M.wall, 0, UZ, 0, ROW, 0, KOM);         // built out 20 cm under the hanging cabinets, flush with the chimney
+  box(baseHang, M.wall, 0, UZ, 0, HANG, 0, KOM);         // built out 20 cm under the hanging cabinets, flush with the chimney
   wedge(M.front, KOM, DB + 0.6, 0, yP, baseLow);       // plinth
-  wedge(M.front, KOM, DB, yP, ROW, baseLow);            // base filler (lower)
-  wedge(M.front, KOM, DB, ROW, yB);                     // base filler
+  wedge(M.front, KOM, DB, yP, HANG, baseLow);           // base filler (lower)
+  wedge(M.front, KOM, DB, HANG, yB);                    // base filler
   wedge(M.wood, KOM + 2.6, DB + 0.5, yB, yTop);         // top
   wedge(M.woodDark, KOM, KOM + 2.6, yTop, yU0);         // behind the slats
   wedge(M.front, KOM, DU, yU0, yU1);                    // upper filler
@@ -646,46 +646,48 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   // base cabinets
   box(baseLow, M.front, 0, UZ, 0, yP, 0, DB + 0.6);
   box(baseLow, M.front, UZ, UKC, 0, yP, KOM, DB + 0.6);
-  box(baseLow, M.carcass, 0, cw, yP, ROW, 0, DB - 1.9); box(zg, M.carcass, 0, cw, ROW, yB, 0, DB - 1.9);
-  box(baseLow, M.carcass, cw, 2 * cw, yP, ROW, 0, DB - 1.9);
-  box(baseLow, M.carcass, 2 * cw, UZ, yP, ROW, 0, DB - 1.9); box(zg, M.carcass, 2 * cw, UZ, ROW, yB, 0, DB - 1.9);
-  box(baseLow, M.carcass, UZ, UKC, yP, ROW, KOM, DB - 1.9); box(zg, M.carcass, UZ, UKC, ROW, yB, KOM, DB - 1.9);
-  // niche behind the glass front
-  box(zg, M.wood, cw, 2 * cw, ROW, yB, 0, 1.8);
-  box(zg, M.wood, cw, 2 * cw, ROW, ROW + 1.8, 0, DB - 1.9);
-  box(zg, M.wood, cw, 2 * cw, yB - 1.8, yB, 0, DB - 1.9);
-  box(zg, M.wood, cw, cw + 1.8, ROW, yB, 0, DB - 1.9);
-  box(zg, M.wood, 2 * cw - 1.8, 2 * cw, ROW, yB, 0, DB - 1.9);
-  decor(rpanel(zg, M.black, cw + 10, cw + 42, ROW + 1.8, ROW + 8, 6, 32, 0.8));
-  decor(box(zg, M.white, cw + 55, cw + 80, ROW + 1.8, ROW + 4, 10, 30)); decor(box(zg, M.tableWood, cw + 57, cw + 78, ROW + 4, ROW + 6, 11, 29));
+  // carcass above the hang height is shared by both variants, below it only the standing one has it
+  box(baseLow, M.carcass, 0, cw, yP, HANG, 0, DB - 1.9); box(zg, M.carcass, 0, cw, HANG, yB, 0, DB - 1.9);
+  box(baseLow, M.carcass, cw, 2 * cw, yP, HANG, 0, DB - 1.9);
+  box(baseLow, M.carcass, 2 * cw, UZ, yP, HANG, 0, DB - 1.9); box(zg, M.carcass, 2 * cw, UZ, HANG, yB, 0, DB - 1.9);
+  box(baseLow, M.carcass, UZ, UKC, yP, HANG, KOM, DB - 1.9); box(zg, M.carcass, UZ, UKC, HANG, yB, KOM, DB - 1.9);
   // top
   box(zg, M.wood, -1.9, UZ, yB, yTop, VF, DB + 0.5);        // top only where it shows, runs over the end panel
   box(zg, M.wood, UZ, UKC, yB, yTop, VF, DB + 0.5);
-  // fronts
+  // fronts (rows from bottom to top; the top row of the middle module is the glass niche)
   const dh = (x0, x1, y1) => ({ type: 'h', x: (x0 + x1) / 2, y: y1 - 6, len: 18 });
-  for (const c of [0, 2]) {
-    front(baseLow, c * cw, (c + 1) * cw, yP, ROW, DB, dh(c * cw, (c + 1) * cw, ROW));
-    front(zg, c * cw, (c + 1) * cw, ROW, yB, DB, dh(c * cw, (c + 1) * cw, yB));
+  function baseFronts(g, rows) {
+    const nY0 = rows[rows.length - 1][0];
+    if (nY0 > HANG) box(g, M.carcass, cw, 2 * cw, HANG, nY0, 0, DB - 1.9);
+    box(g, M.wood, cw, 2 * cw, nY0, yB, 0, 1.8);
+    box(g, M.wood, cw, 2 * cw, nY0, nY0 + 1.8, 0, DB - 1.9);
+    box(g, M.wood, cw, 2 * cw, yB - 1.8, yB, 0, DB - 1.9);
+    box(g, M.wood, cw, cw + 1.8, nY0, yB, 0, DB - 1.9);
+    box(g, M.wood, 2 * cw - 1.8, 2 * cw, nY0, yB, 0, DB - 1.9);
+    decor(rpanel(g, M.black, cw + 10, cw + 42, nY0 + 1.8, nY0 + 8, 6, 32, 0.8));
+    decor(box(g, M.white, cw + 55, cw + 80, nY0 + 1.8, nY0 + 4, 10, 30)); decor(box(g, M.tableWood, cw + 57, cw + 78, nY0 + 4, nY0 + 6, 11, 29));
+    for (const [y0, y1] of rows) {
+      for (const c of [0, 2]) front(g, c * cw, (c + 1) * cw, y0, y1, DB, dh(c * cw, (c + 1) * cw, y1));
+      front(g, UZ, UKC, y0, y1, DB, dh(UZ, UKC, y1));
+      if (y0 !== nY0) front(g, cw, 2 * cw, y0, y1, DB, dh(cw, 2 * cw, y1));
+    }
+    const x0 = cw + 0.15, x1 = 2 * cw - 0.15, y0 = nY0 + 0.15, y1 = yB - 0.15, f = 4;   // glass front
+    box(g, M.front, x0, x0 + f, y0, y1, DB - 1.9, DB); box(g, M.front, x1 - f, x1, y0, y1, DB - 1.9, DB);
+    box(g, M.front, x0 + f, x1 - f, y0, y0 + f, DB - 1.9, DB); box(g, M.front, x0 + f, x1 - f, y1 - f, y1, DB - 1.9, DB);
+    box(g, M.smoke, x0 + f, x1 - f, y0 + f, y1 - f, DB - 1.3, DB - 0.7, false);
+    handle(g, dh(cw, 2 * cw, yB), DB);
   }
-  front(baseLow, cw, 2 * cw, yP, ROW, DB, dh(cw, 2 * cw, ROW));
-  { // glass-front drawer / flap
-    const x0 = cw + 0.15, x1 = 2 * cw - 0.15, y0 = ROW + 0.15, y1 = yB - 0.15, f = 4;
-    box(zg, M.front, x0, x0 + f, y0, y1, DB - 1.9, DB); box(zg, M.front, x1 - f, x1, y0, y1, DB - 1.9, DB);
-    box(zg, M.front, x0 + f, x1 - f, y0, y0 + f, DB - 1.9, DB); box(zg, M.front, x0 + f, x1 - f, y1 - f, y1, DB - 1.9, DB);
-    box(zg, M.smoke, x0 + f, x1 - f, y0 + f, y1 - f, DB - 1.3, DB - 0.7, false);
-    handle(zg, dh(cw, 2 * cw, yB), DB);
-  }
-  front(baseLow, UZ, UKC, yP, ROW, DB, dh(UZ, UKC, ROW));
-  front(zg, UZ, UKC, ROW, yB, DB, dh(UZ, UKC, yB));
+  baseFronts(baseLow, [[yP, ROW], [ROW, yB]]);          // standing: two equal drawers
+  baseFronts(baseHang, [[HANG, yB]]);                   // wall-hung: one 45 cm row
 
   // white C-shaped end panel on the left (1.9 cm): cut back in the slat zone so the top runs through
-  rpanel(baseLow, M.endWhite, -1.9, 0, 0, ROW, 0, DB + 0.6, 0.25);   // below 28 cm
-  rpanel(zg, M.endWhite, -1.9, 0, ROW, yB, 0, VF, 0.25);             // spine below the top
+  rpanel(baseLow, M.endWhite, -1.9, 0, 0, HANG, 0, DB + 0.6, 0.25);  // below 28 cm
+  rpanel(zg, M.endWhite, -1.9, 0, HANG, yB, 0, VF, 0.25);            // spine below the top
   rpanel(zg, M.endWhite, -1.9, 0, yU0, yU1, 0, VF, 0.25);            // spine at the upper cabinets
   // at the height of the slats the end of the built-out wall is closed with slats, back to the real wall
   const lg = new THREE.Group(); lg.rotation.y = -Math.PI / 2; zg.add(lg);
   fluted(lg, 0, VF, yB, yU0, 0);
-  rpanel(zg, M.endWhite, -1.9, 0, ROW, yB, VF - 0.5, DB + 0.6, 0.25); // lower arm (under the top)
+  rpanel(zg, M.endWhite, -1.9, 0, HANG, yB, VF - 0.5, DB + 0.6, 0.25); // lower arm (under the top)
   rpanel(zg, M.endWhite, -1.9, 0, yU0, yU1, VF - 0.5, DB, 0.25);      // upper arm
   // 1.9 cm filler on top of the upper cabinets (up to the ceiling)
   box(zg, M.endWhite, -1.9, UZ, yU1, yU1 + 1.9, 0, DB);
@@ -719,7 +721,7 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
 const doorL = new THREE.Group(), doorR = new THREE.Group();
 {
   const sg = frame(world, P2, R);
-  const SD = SZ_D, SX0 = 30, SX1 = 205, yP = 3, MID = 117.5;   // fix 30 + two doors 87.5
+  const SD = SZ_D, SX0 = 30, SX1 = 205, yP = 8, MID = 117.5;   // fix 30 + two doors 87.5
   box(sg, M.interior, 0, SX1, 0, FH, 0, 1.8);
   box(sg, M.interior, 0, 1.8, yP, FH, 0, SD - 1.9);
   rpanel(sg, M.front, SX1 - 1.8, SX1, 0, FH, 0, SD - 1.95, 0.25);
