@@ -99,10 +99,12 @@
         
         <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami; LED dookoła TV we wnęce</li>
         <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
-        <li>Szafki górne 193–238 cm (wys. 45), otwierane do góry, klamki poziome + blenda 1,9 cm nad nimi; z lewej biała blenda w kształcie C (1,9 cm), na wysokości lameli bok zamknięty lamelami do ściany</li>
+        <li>Szafki górne 193–238 cm (wys. 45), otwierane do góry, klamki poziome + blenda 1,9 cm nad nimi (w kolorze frontów); z lewej blenda w kształcie C (1,9 cm, w kolorze frontów), na wysokości lameli bok zamknięty lamelami do ściany</li>
         <li>Szafa: fix 30 + 2 × 87,5 cm, wys. 240 cm, gł. <b>60 cm</b>; lewa część sięga w narożnik za zabudową (wnętrze ok. 115 cm); narożnik wyciąć pod komin (ok. 8 cm)</li>
         <li>Kąt między ścianą TV a ścianą szafy: <b>~103°</b> (zmierzony z rzutu; w narożniku klin wypełniony blendą)</li>
         <li>Wnętrze szafy wg rys. 88: drążek + 2 półki (poziomy LED nad drążkiem i w górnej skrytce, 3 cm od krawędzi) | 4 półki + 3 szuflady wewnętrzne, pionowe LED z obu stron półek</li>
+        <li>Drzwi wejściowe do pokoju jak na zdjęciach: drewniane, z łukiem, przeszklone u góry</li>
+        <li>Ściana balkonowa jak na zdjęciach: drzwi balkonowe 90 + okno 2-skrzydłowe 155 + 80 (białe PCV, razem ok. 325 cm), żeliwny kaloryfer ok. 180 cm, 2 piony</li>
         <li>Sofa, ława, stół, dodatki – orientacyjnie wg rzutu</li>
       </ul>
     </details>
@@ -398,6 +400,11 @@ const M = {
   white: std({ color: '#f6f5f2', roughness: 0.55 }),
   endWhite: std({ color: '#efede8', roughness: 0.42 }),
   lining: std({ color: '#d8d4cd', roughness: 0.8 }),
+  doorWood: std({ color: '#b4805e', map: grainTex, normalMap: grainNrm, normalScale: new THREE.Vector2(0.4, 0.4), roughness: 0.38 }),   // colour sampled from the photos
+  doorGlass: new THREE.MeshPhysicalMaterial({ color: '#4a3520', transparent: true, opacity: 0.88, roughness: 0.35, metalness: 0.05, normalMap: fabricNrm, normalScale: new THREE.Vector2(1.2, 1.2), depthWrite: false }),   // amber textured glass
+  brass: std({ color: '#c9a050', metalness: 0.9, roughness: 0.3 }),
+  pvc: std({ color: '#f4f4f2', roughness: 0.35 }),
+  radiator: std({ color: '#f1f0ec', roughness: 0.3 }),
   concrete: std({ color: '#c4bfb7', roughness: 0.95 }),
   tableWood: std({ color: '#b98e60', map: grainTex, normalMap: grainNrm, normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.45 }),
   chair: std({ color: '#d2c9b9', roughness: 1, normalMap: fabricNrm, normalScale: new THREE.Vector2(0.5, 0.5) }),
@@ -439,7 +446,7 @@ const L = V(-Rv * D.x + Ru * N.x, -Rv * D.y + Ru * N.y);           // from wardr
 const P0 = V(0, 0), P1 = V(289, 0);
 const P2 = P1.clone().addScaledVector(D, 469);
 const P3 = P2.clone().addScaledVector(R, 215);
-const P4 = V(-15, P3.y);
+const P4 = V(0, P3.y);              // left wall square (90°) to the door wall and the balcony wall
 const ROOM = [P0, P1, P2, P3, P4];
 const at = (u, v) => P1.clone().addScaledVector(D, u).addScaledVector(N, v);
 
@@ -459,7 +466,82 @@ const ceilingG = new THREE.Group(); world.add(ceilingG);
 }
 
 /* ---------- walls ---------- */
+// extruded flat shape in the wall plane (x = along the wall, y = up), z from z0 to z1
+function slab(parent, mat, shape, z0, z1, cast = true) {
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: z1 - z0, bevelEnabled: false, curveSegments: 32 });
+  geo.translate(0, 0, z0);
+  const m = finish(new THREE.Mesh(geo, mat), cast); parent.add(m); return m;
+}
+// arched, half-glazed wooden door like the one in the photos
+function archDoor(g, o) {
+  const W = o.s1 - o.s0, cx = (o.s0 + o.s1) / 2, r = W / 2, spring = o.y1 - r, f = 5, zc = -T / 2;
+  // wall above the straight part, minus the arch
+  const sp = new THREE.Shape(); sp.moveTo(o.s0, spring); sp.lineTo(o.s0, o.y1); sp.lineTo(o.s1, o.y1); sp.lineTo(o.s1, spring);
+  sp.absarc(cx, spring, r, 0, Math.PI, false); slab(g, M.wall, sp, -T, 0);
+  // jambs + arched head (frame)
+  box(g, M.doorWood, o.s0, o.s0 + f, 0, spring, zc - 3.5, zc + 3.5);
+  box(g, M.doorWood, o.s1 - f, o.s1, 0, spring, zc - 3.5, zc + 3.5);
+  const hj = new THREE.Shape(); hj.absarc(cx, spring, r, 0, Math.PI, false); hj.lineTo(cx - r + f, spring);
+  hj.absarc(cx, spring, r - f, Math.PI, 0, true); hj.lineTo(cx + r, spring); slab(g, M.doorWood, hj, zc - 3.5, zc + 3.5);
+  // casing on the room side (arched architrave)
+  const cw = 7, cs = new THREE.Shape(); cs.moveTo(o.s0 - cw, 0); cs.lineTo(o.s0 - cw, spring);
+  cs.absarc(cx, spring, r + cw, Math.PI, 0, true); cs.lineTo(o.s1 + cw, 0); cs.lineTo(o.s1, 0); cs.lineTo(o.s1, spring);
+  cs.absarc(cx, spring, r, 0, Math.PI, false); cs.lineTo(o.s0, 0); slab(g, M.doorWood, cs, 0, 1.6);
+  // leaf: wood frame with glass panes (2 x 3 + 2 in the arch), two raised panels below
+  const rl = r - f, x0 = cx - rl, x1 = cx + rl, st = 8, mu = 2.2, gy0 = 96;
+  const leaf = new THREE.Shape(); leaf.moveTo(x0, 0.5); leaf.lineTo(x1, 0.5); leaf.lineTo(x1, spring); leaf.absarc(cx, spring, rl, 0, Math.PI, false); leaf.lineTo(x0, 0.5);
+  const panes = [];
+  const rows = [[gy0, gy0 + 27], [gy0 + 27 + 2 * mu, gy0 + 54 + 2 * mu], [gy0 + 54 + 4 * mu, spring]];
+  for (const [ya, yb] of rows) for (const [xa, xb] of [[x0 + st, cx - mu], [cx + mu, x1 - st]]) {
+    const h = new THREE.Path(); h.moveTo(xa, ya); h.lineTo(xb, ya); h.lineTo(xb, yb); h.lineTo(xa, yb); h.lineTo(xa, ya);
+    leaf.holes.push(h); const p = new THREE.Shape(h.getPoints()); panes.push(p);
+  }
+  const ri = rl - st, ya = spring + 2 * mu;
+  for (const side of [-1, 1]) {               // the two panes in the arch
+    const xe = Math.sqrt(ri * ri - (ya - spring) ** 2), xm = cx + side * mu;
+    const a0 = Math.atan2(ya - spring, side * xe), a1 = Math.acos(side * mu / ri);
+    const h = new THREE.Path(); h.moveTo(xm, ya); h.lineTo(cx + side * xe, ya);
+    h.absarc(cx, spring, ri, a0, a1, side < 0); h.lineTo(xm, ya);
+    leaf.holes.push(h); panes.push(new THREE.Shape(h.getPoints(24)));
+  }
+  slab(g, M.doorWood, leaf, zc - 2, zc + 2);
+  for (const p of panes) { const m = slab(g, M.doorGlass, p, zc - 0.3, zc + 0.3, false); }
+  for (const [xa, xb] of [[x0 + st + 2, cx - mu - 2], [cx + mu + 2, x1 - st - 2]]) {     // raised panels
+    for (const zz of [zc + 2, zc - 3.4]) rpanel(g, M.doorWood, xa, xb, 12, gy0 - 10, zz, zz + 1.4, 0.7);
+  }
+  // brass lever handle + escutcheon (handle side right, hinges left)
+  for (const side of [1, -1]) {
+    const zf = side > 0 ? zc + 2 : zc - 2;
+    box(g, M.brass, x1 - 9, x1 - 5, 92, 110, Math.min(zf, zf + side * 0.6), Math.max(zf, zf + side * 0.6));
+    box(g, M.brass, x1 - 19, x1 - 7, 104, 106, Math.min(zf + side * 0.6, zf + side * 5), Math.max(zf + side * 0.6, zf + side * 5));
+  }
+}
+// white PVC window / balcony door with deep white reveals
+function pvc(g, o) {
+  const fw = 6.5, zc = -T / 2, d0 = zc - 3.5, d1 = zc + 3.5, P = M.pvc;
+  const bars = [];                                   // [s0, s1, y0, y1]
+  bars.push([o.s0, o.s0 + fw, o.y0, o.y1], [o.s1 - fw, o.s1, o.y0, o.y1], [o.s0, o.s1, o.y1 - fw, o.y1], [o.s0, o.s1, o.y0, o.y0 + fw]);
+  const panes = [];
+  if (o.type === 'pvcwindow') {
+    bars.push([o.split - fw / 2, o.split + fw / 2, o.y0, o.y1]);
+    panes.push([o.s0 + fw, o.split - fw / 2, o.y0 + fw, o.y1 - fw], [o.split + fw / 2, o.s1 - fw, o.y0 + fw, o.y1 - fw]);
+    for (const [a, b] of [[o.s0 + fw, o.split - fw / 2], [o.split + fw / 2, o.s1 - fw]]) {       // sash frames
+      for (const bb of [[a, a + 4, o.y0 + fw, o.y1 - fw], [b - 4, b, o.y0 + fw, o.y1 - fw], [a, b, o.y0 + fw, o.y0 + fw + 4], [a, b, o.y1 - fw - 4, o.y1 - fw]]) bars.push(bb);
+    }
+    rpanel(g, M.pvc, o.split - 1, o.split + 1, (o.y0 + o.y1) / 2 - 8, (o.y0 + o.y1) / 2 + 8, d1, d1 + 2.5, 0.5);   // handle
+    rpanel(g, M.white, o.s0 - 14, o.s1, o.y0 - 3, o.y0, -T, 6, 0.4);                                             // window sill (runs past the window on the east side)
+  } else {
+    bars.push([o.s0, o.s1, o.transom - fw / 2, o.transom + fw / 2]);
+    panes.push([o.s0 + fw, o.s1 - fw, fw, o.transom - fw / 2], [o.s0 + fw, o.s1 - fw, o.transom + fw / 2, o.y1 - fw]);
+    for (const bb of [[o.s0 + fw, o.s0 + fw + 4, fw, o.y1 - fw], [o.s1 - fw - 4, o.s1 - fw, fw, o.y1 - fw]]) bars.push(bb);
+    rpanel(g, M.pvc, o.s0 + fw + 4, o.s0 + fw + 6, 98, 114, d1, d1 + 2.5, 0.5);                                  // handle
+  }
+  for (const [a, b, c, e] of bars) box(g, P, a, b, c, e, d0, d1);
+  for (const [a, b, c, e] of panes) { const gl = box(g, M.glass, a, b, c, e, zc - 0.3, zc + 0.3, false); if (gl) gl.userData.ptSkip = true; }
+}
 function fillOpening(g, o) {
+  if (o.type === 'archdoor') return archDoor(g, o);
+  if (o.type === 'pvcwindow' || o.type === 'pvcdoor') return pvc(g, o);
   const f = 5, z0 = -T / 2 - 3.5, z1 = -T / 2 + 3.5;
   const fm = o.type === 'door' ? M.white : M.frame;
   box(g, fm, o.s0, o.s0 + f, o.y0, o.y1, z0, z1);
@@ -489,13 +571,13 @@ function buildWall(a, b, openings = [], baseboard = true) {
   for (const o of ops) {
     box(g, M.wall, s, o.s0, 0, H, -T, 0);
     if (o.y0 > 0) box(g, M.wall, o.s0, o.s1, 0, o.y0, -T, 0);
-    if (o.y1 < H) box(g, M.wall, o.s0, o.s1, o.y1, H, -T, 0);
+    if (o.y1 < H) box(g, M.wall, o.s0, o.s1, o.y1, H, -T, 0);   // (arched door adds its own arch-shaped piece below y1)
     s = o.s1; fillOpening(g, o);
   }
   box(g, M.wall, s, len + T, 0, H, -T, 0);
   if (baseboard) {
     let s2 = 0;
-    for (const o of ops) if (o.y0 === 0) { const e = o.type === 'door' ? 7 : 0; box(g, M.white, s2, o.s0 - e, 0, 9, 0, 1.4); s2 = o.s1 + e; }
+    for (const o of ops) if (o.y0 === 0) { const e = o.type === 'door' || o.type === 'archdoor' ? 7 : 0; box(g, M.white, s2, o.s0 - e, 0, 9, 0, 1.4); s2 = o.s1 + e; }
     box(g, M.white, s2, len, 0, 9, 0, 1.4);
   }
   const mid = a.clone().add(b).multiplyScalar(0.5), nrm = V(-dir.y, dir.x);
@@ -504,13 +586,15 @@ function buildWall(a, b, openings = [], baseboard = true) {
   g.userData.test = test;
   return g;
 }
-buildWall(P0, P1, [{ s0: 146, s1: 240, y0: 0, y1: 210, type: 'door' }]);
+buildWall(P0, P1, [{ s0: 146, s1: 240, y0: 0, y1: 228, type: 'archdoor' }]);
 buildWall(P1, P2, [], false);
 buildWall(P2, P3, [], false);
 const sBal = x => P3.x - x;
+// as in the photos: balcony door on the west side + window with a narrow and a wide sash, white PVC
+const WIN = { door0: 100, door1: 190, win1: 425, split: 345, sill: 76, top: 218 };   // door 90 | wide sash 155 | narrow sash 80 (photo proportions)
 const bottomWall = buildWall(P3, P4, [
-  { s0: sBal(545), s1: sBal(225), y0: 85, y1: 220, type: 'window' },
-  { s0: sBal(180), s1: sBal(100), y0: 0, y1: 215, type: 'glassdoor' },
+  { s0: sBal(WIN.win1), s1: sBal(WIN.door1), y0: WIN.sill, y1: WIN.top, type: 'pvcwindow', split: sBal(WIN.split) },
+  { s0: sBal(WIN.door1), s1: sBal(WIN.door0), y0: 0, y1: WIN.top, type: 'pvcdoor', transom: WIN.sill },
 ]);
 buildWall(P4, P0);
 // things standing against the balcony wall disappear together with it
@@ -520,11 +604,22 @@ cutaways.push({ g: balconySide, test: bottomWall.userData.test });
 // radiator + pipe (bottom wall)
 {
   const zb = P3.y;
-  rpanel(balconySide, M.white, 240, 530, 15, 75, zb - 10, zb - 3, 0.6);
-  const ribs = [];
-  for (let x = 243; x < 528; x += 5) { const gg = new THREE.BoxGeometry(2, 58, 1); gg.translate(x + 1, 45, zb - 10.5); ribs.push(gg); }
-  balconySide.add(finish(new THREE.Mesh(mergeGeometries(ribs), M.white)));
-  cyl(balconySide, M.white, 2.5, 2.5, H, 565, H / 2, zb - 5, 16);
+  // old cast-iron column radiator under the window
+  const rx0 = 239, rx1 = 419, ry0 = 8, ry1 = 66, pitch = 12.3, n = Math.floor((rx1 - rx0) / pitch);
+  const parts = [];
+  for (let i = 0; i < n; i++) {
+    const cx = rx0 + pitch / 2 + i * pitch;
+    for (const dz of [-3.2, 3.2]) {                                       // two round columns per section
+      const c = new THREE.CylinderGeometry(2.2, 2.2, ry1 - ry0 - 8, 14); c.translate(cx, (ry0 + ry1) / 2, zb - 10 + dz); parts.push(c);
+    }
+    const web = new RoundedBoxGeometry(5.5, ry1 - ry0 - 6, 4, 2, 1.2); web.translate(cx, (ry0 + ry1) / 2, zb - 10); parts.push(web);
+    for (const yy of [ry0 + 3, ry1 - 3]) { const hub = new RoundedBoxGeometry(pitch - 0.6, 6, 11, 2, 2.5); hub.translate(cx, yy, zb - 10); parts.push(hub); }
+  }
+  balconySide.add(finish(new THREE.Mesh(mergeGeometries(parts.map(g => g.index ? g.toNonIndexed() : g)), M.radiator)));
+  for (const x of [rx0 + 6, rx1 - 6]) cyl(balconySide, M.radiator, 1.5, 1.5, ry0, x, ry0 / 2, zb - 10, 10);          // feet
+  const conn = cyl(balconySide, M.white, 1.6, 1.6, 30, rx1 + 15, ry1 - 3, zb - 10, 12); conn.rotation.z = Math.PI / 2; // supply pipe to the risers
+  // two vertical riser pipes left of the window (floor to ceiling)
+  for (const x of [446, 453]) cyl(balconySide, M.white, 1.8, 1.8, H, x, H / 2, zb - 3.5, 14);
 }
 // curtains: sheer over the window, linen side panels
 function curtain(x0, x1, zWall, mat, folds, depth) {
@@ -539,10 +634,10 @@ function curtain(x0, x1, zWall, mat, folds, depth) {
 }
 {
   const z = P3.y - 16;
-  curtain(232, 538, z, M.sheer, 14, 2.2);
-  curtain(195, 238, z - 3, M.linen, 4, 3.5);
-  curtain(532, 578, z - 3, M.linen, 4, 3.5);
-  decor(box(balconySide, M.black, 190, 585, H - 6, H - 3, z - 4.5, z - 1.5));
+  curtain(WIN.door1 - 2, WIN.win1 + 6, z, M.sheer, 11, 2.2);              // sheer over the window
+  curtain(WIN.door0 - 36, WIN.door0 - 2, z - 3, M.linen, 4, 3.5);
+  curtain(WIN.win1 + 6, WIN.win1 + 40, z - 3, M.linen, 4, 3.5);
+  decor(box(balconySide, M.black, WIN.door0 - 40, WIN.win1 + 44, H - 6, H - 3, z - 4.5, z - 1.5));
 }
 
 /* =========================================================
@@ -582,6 +677,7 @@ function fluted(parent, x0, x1, y0, y1, z0, hole) {     // slatted panel facing 
 const lamps = [];                       // all artificial lights (toggled by "Wyłącz cienie i światła")
 // LED strip light: a thin rectangular area light, so the light comes from the whole line.
 // emits along local -z; sizes are in metres (area lights ignore the cm→m group scale)
+const wardrobeLamps = [];               // LED lights inside the wardrobe: on only while its doors are open
 function lineLight(parent, color, intensity, wCm, hCm, x, y, z, rx = 0, ry = 0) {
   const l = new THREE.RectAreaLight(color, intensity, wCm / 100, hCm / 100);
   l.position.set(x, y, z); l.rotation.set(rx, ry, 0, 'YXZ'); parent.add(l); lamps.push(l); return l;
@@ -685,19 +781,19 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   baseFronts(baseLow, [[yP, ROW], [ROW, yB]]);          // standing: two equal drawers
   baseFronts(baseHang, [[HANG, yB]]);                   // wall-hung: one 45 cm row
 
-  // white C-shaped end panel on the left (1.9 cm): cut back in the slat zone so the top runs through
-  rpanel(baseLow, M.endWhite, -1.9, 0, 0, HANG, 0, DB + 0.6, 0.25);  // below 28 cm
-  rpanel(zg, M.endWhite, -1.9, 0, HANG, yB, 0, VF, 0.25);            // spine below the top
-  rpanel(zg, M.endWhite, -1.9, 0, yU0, yU1, 0, VF, 0.25);            // spine at the upper cabinets
+  // C-shaped end panel on the left (1.9 cm, front colour): cut back in the slat zone so the top runs through
+  rpanel(baseLow, M.front, -1.9, 0, 0, HANG, 0, DB + 0.6, 0.25);  // below 28 cm
+  rpanel(zg, M.front, -1.9, 0, HANG, yB, 0, VF, 0.25);            // spine below the top
+  rpanel(zg, M.front, -1.9, 0, yU0, yU1, 0, VF, 0.25);            // spine at the upper cabinets
   // at the height of the slats the end of the built-out wall is closed with slats, back to the real wall
   const lg = new THREE.Group(); lg.rotation.y = -Math.PI / 2; zg.add(lg);
   fluted(lg, 0, VF, yB, yU0, 0);
-  rpanel(zg, M.endWhite, -1.9, 0, HANG, yB, VF - 0.5, DB + 0.6, 0.25); // lower arm (under the top)
-  rpanel(zg, M.endWhite, -1.9, 0, yU0, yU1, VF - 0.5, DB, 0.25);      // upper arm
+  rpanel(zg, M.front, -1.9, 0, HANG, yB, VF - 0.5, DB + 0.6, 0.25); // lower arm (under the top)
+  rpanel(zg, M.front, -1.9, 0, yU0, yU1, VF - 0.5, DB, 0.25);      // upper arm
   // 1.9 cm filler on top of the upper cabinets (up to the ceiling)
-  box(zg, M.endWhite, -1.9, UZ, yU1, yU1 + 1.9, 0, DB);
-  box(zg, M.endWhite, UZ, UKC, yU1, yU1 + 1.9, KOM, DB);
-  wedge(M.endWhite, KOM, DB, yU1, yU1 + 1.9);
+  box(zg, M.front, -1.9, UZ, yU1, yU1 + 1.9, 0, DB);
+  box(zg, M.front, UZ, UKC, yU1, yU1 + 1.9, KOM, DB);
+  wedge(M.front, KOM, DB, yU1, yU1 + 1.9);
 
   // slatted (fluted) panel + chimney cladding
   fluted(zg, 0, UKC, yTop, yU0, KOM, hole);
@@ -741,10 +837,10 @@ const doorL = new THREE.Group(), doorR = new THREE.Group();
   box(sg, M.interior, lx0, lx1, 198, 199.8, 1.8, SD - 2);
   // horizontal LED strip under the top shelf, 3 cm back from its front edge
   box(sg, M.led, SX0 - 10, lx1 - 1, 197.4, 198, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
-  lineLight(sg, '#ffe0b0', 130, lx1 - SX0 + 9, 1.2, (SX0 - 10 + lx1 - 1) / 2, 197.3, SD - 5.6, DOWN);
+  wardrobeLamps.push(lineLight(sg, '#ffe0b0', 130, lx1 - SX0 + 9, 1.2, (SX0 - 10 + lx1 - 1) / 2, 197.3, SD - 5.6, DOWN));
   // second horizontal LED strip in the top compartment, along the top front edge (3 cm back)
   box(sg, M.led, SX0 - 10, lx1 - 1, FH - 2.4, FH - 1.8, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
-  lineLight(sg, '#ffe0b0', 110, lx1 - SX0 + 9, 1.2, (SX0 - 10 + lx1 - 1) / 2, FH - 2.5, SD - 5.6, DOWN);
+  wardrobeLamps.push(lineLight(sg, '#ffe0b0', 110, lx1 - SX0 + 9, 1.2, (SX0 - 10 + lx1 - 1) / 2, FH - 2.5, SD - 5.6, DOWN));
   const rod = finish(new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, lx1 - lx0, 12), M.handle));
   rod.rotation.z = Math.PI / 2; rod.position.set((lx0 + lx1) / 2, 188, SD / 2); sg.add(rod);
   const cols = ['#2f3e55', '#d1cabd', '#7d8b74', '#3a3a3a', '#b46a55', '#e6e1d7', '#55606e', '#c2a27a', '#8a6f5a', '#d9d4ca', '#46536a'];
@@ -759,8 +855,8 @@ const doorL = new THREE.Group(), doorR = new THREE.Group();
   for (const y of [84, 122, 160, 198]) box(sg, M.interior, rx0, rx1, y, y + 1.8, 1.8, SD - 2);
   // vertical LED strips on both sides of the shelf section, 3 cm back from the front edge
   for (const [a, b] of [[rx0, rx0 + 0.5], [rx1 - 0.5, rx1]]) box(sg, M.led, a, b, 86, FH - 3, SD - 2 - 3 - 1.2, SD - 2 - 3, false);
-  lineLight(sg, '#ffe0b0', 110, 1.2, FH - 3 - 86, rx0 + 0.6, (86 + FH - 3) / 2, SD - 5.6, 0, -Math.PI / 2);   // shines to the right
-  lineLight(sg, '#ffe0b0', 110, 1.2, FH - 3 - 86, rx1 - 0.6, (86 + FH - 3) / 2, SD - 5.6, 0, Math.PI / 2);    // shines to the left
+  wardrobeLamps.push(lineLight(sg, '#ffe0b0', 110, 1.2, FH - 3 - 86, rx0 + 0.6, (86 + FH - 3) / 2, SD - 5.6, 0, -Math.PI / 2));   // shines to the right
+  wardrobeLamps.push(lineLight(sg, '#ffe0b0', 110, 1.2, FH - 3 - 86, rx1 - 0.6, (86 + FH - 3) / 2, SD - 5.6, 0, Math.PI / 2));    // shines to the left
   [[yP + 1.8, 34], [34, 58], [58, 82]].forEach(([y0, y1]) => {
     rpanel(sg, M.carcass, rx0 + 0.5, rx1 - 0.5, y0 + 0.3, y1 - 0.3, SD - 6, SD - 4, 0.2);
     box(sg, M.black, (rx0 + rx1) / 2 - 7, (rx0 + rx1) / 2 + 7, y1 - 4, y1 - 2.5, SD - 4, SD - 3.9, false);
@@ -840,18 +936,33 @@ Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near:
 sun.shadow.camera.layers.enableAll();           // cut-away walls still cast shadows
 sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.015; sun.shadow.radius = 3;
 scene.add(sun);
-// recessed downlights (spots) in the ceiling
-const DL = [
-  [at(60, 70), at(60, 20)], [at(210, 70), at(210, 20)], [at(350, 70), at(350, 20)],
-  [V(260, 240), null], [V(430, 260), null], [P2.clone().addScaledVector(R, 115).addScaledVector(L, 110), null],
-];
-for (const [p, aim] of DL) {
-  const s = new THREE.SpotLight('#ffe2bf', aim ? 6 : 8, 6, aim ? 0.6 : 0.75, 0.8, 2);
-  s.position.set(p.x, H - 3, p.y);
-  const tgt = new THREE.Object3D(); tgt.position.set(aim ? aim.x : p.x, aim ? 60 : 0, aim ? aim.y : p.y);
-  world.add(tgt); s.target = tgt; world.add(s); lamps.push(s);
-  const ring = cyl(ceilingG, M.white, 5, 5, 0.6, p.x, H - 0.3, p.y, 32); ring.castShadow = false;
-  const disc = cyl(ceilingG, M.downlight, 3.6, 3.6, 0.4, p.x, H - 0.7, p.y, 32); disc.castShadow = false;
+// ceiling track light with three white cylinder spots (like the one in the photos)
+{
+  const tg = frame(ceilingG, at(185, 150), D);          // rail parallel to the TV wall, ~1.5 m in front of it
+  const len = 100;
+  box(tg, M.white, -len / 2, len / 2, H - 4, H - 1, -2, 2, false);                  // rail
+  for (const x of [-len / 2 + 8, len / 2 - 8]) cyl(tg, M.white, 2.5, 2.5, 1, x, H - 0.5, 0, 16).castShadow = false;
+  const spots = [
+    { x: -38, aim: at(80, 20), ay: 120 },        // left part of the slatted wall
+    { x: 0, aim: at(250, 20), ay: 120 },         // right part / chimney
+    { x: 38, aim: V(300, 230), ay: 0 },          // sofa and coffee table
+  ];
+  const wp = new THREE.Vector3(), wt = new THREE.Vector3();
+  for (const sp of spots) {
+    const head = new THREE.Group(); head.position.set(sp.x, H - 4, 0); tg.add(head);
+    cyl(head, M.white, 0.8, 0.8, 5, 0, -2.5, 0, 10).castShadow = false;              // stem
+    const can = new THREE.Group(); can.position.set(0, -5, 0); head.add(can);
+    // aim the can: compute target in the rail's local space
+    tg.updateWorldMatrix(true, true);
+    wt.set(sp.aim.x, sp.ay, sp.aim.y); world.localToWorld(wt); tg.worldToLocal(wt);
+    const dir = wt.clone().sub(new THREE.Vector3(sp.x, H - 9, 0)).normalize();
+    can.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+    const body = cyl(can, M.white, 4, 4, 12, 0, -5, 0, 32); body.castShadow = false;
+    const lens = cyl(can, M.downlight, 3.2, 3.2, 0.3, 0, -11.1, 0, 32); lens.castShadow = false;
+    const l = new THREE.SpotLight('#ffe2bf', 10, 7, 0.42, 0.6, 2);
+    l.position.set(sp.x, H - 9 + dir.y * 11, dir.z * 11); l.position.x += dir.x * 11;
+    const tgt = new THREE.Object3D(); tgt.position.copy(wt); tg.add(tgt); l.target = tgt; tg.add(l); lamps.push(l);
+  }
 }
 
 /* =========================================================
@@ -967,6 +1078,7 @@ const SLATS = [
   { name: 'Orzech', color: '#7a5236' },
   { name: 'Dąb wędzony', color: '#4e3726' },
   { name: 'Czarny mat', color: '#2b2a28' },
+  { name: 'Jak drzwi (orzech)', color: '#b4805e' },
 ];
 const slatsEl = document.getElementById('slats');
 function applySlat(c) {
@@ -1085,6 +1197,8 @@ function tick(now) {
   if (Math.abs(doorsTarget - doorsOpen) > 0.0005) invalidate(true);
   doorsOpen += (doorsTarget - doorsOpen) * Math.min(1, dt * 5);
   doorL.rotation.y = -doorsOpen * THREE.MathUtils.degToRad(90);
+  const wOn = !flat && doorsOpen > 0.03;
+  for (const l of wardrobeLamps) if (l.visible !== wOn) { l.visible = wOn; invalidate(); }
   doorR.rotation.y = doorsOpen * THREE.MathUtils.degToRad(100);
   controls.update();
   if (ptOn && pt) {
