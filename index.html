@@ -77,7 +77,7 @@
     <span class="lbl">Kolorystyka</span>
     <div class="row" id="schemes"></div>
 
-    <span class="lbl">Kolor lameli</span>
+    <span class="lbl">Kolor lameli i blatu</span>
     <div class="row" id="slats"></div>
 
     <span class="lbl">Szafa i meble</span>
@@ -95,7 +95,7 @@
       <ul>
         <li>Wysokość pokoju: <b>245 cm</b>; wysokość mebli (zabudowa i szafa): <b>240 cm</b></li>
         <li>Ściana skośna 469 cm = <b>275</b> zabudowa + <b>145</b> komin + <b>49</b> do narożnika</li>
-        <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base 8 cm, dwie równe szuflady po 32,5 cm, blat 2,5 cm (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm; pod szafą ten sam base 8 cm</li>
+        <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base 8 cm, dwie równe szuflady po 32,5 cm, blat 2,5 cm (w kolorze lameli) (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm; pod szafą ten sam base 8 cm</li>
         
         <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami; LED dookoła TV we wnęce</li>
         <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
@@ -740,7 +740,7 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   wedge(M.front, KOM, DB + 0.6, 0, yP, baseLow);       // plinth
   wedge(M.front, KOM, DB, yP, HANG, baseLow);           // base filler (lower)
   wedge(M.front, KOM, DB, HANG, yB);                    // base filler
-  wedge(M.wood, KOM + 2.6, DB + 0.5, yB, yTop);         // top
+  wedge(M.slat, KOM + 2.6, DB + 0.5, yB, yTop);         // top (same colour as the slats)
   wedge(M.slatDark, KOM, KOM + 2.6, yTop, yU0);         // behind the slats
   wedge(M.front, KOM, DU, yU0, yU1);                    // upper filler
 
@@ -753,8 +753,8 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   box(baseLow, M.carcass, 2 * cw, UZ, yP, HANG, 0, DB - 1.9); box(zg, M.carcass, 2 * cw, UZ, HANG, yB, 0, DB - 1.9);
   box(baseLow, M.carcass, UZ, UKC, yP, HANG, KOM, DB - 1.9); box(zg, M.carcass, UZ, UKC, HANG, yB, KOM, DB - 1.9);
   // top
-  box(zg, M.wood, -1.9, UZ, yB, yTop, VF, DB + 0.5);        // top only where it shows, runs over the end panel
-  box(zg, M.wood, UZ, UKC, yB, yTop, VF, DB + 0.5);
+  box(zg, M.slat, -1.9, UZ, yB, yTop, VF, DB + 0.5);        // top only where it shows, runs over the end panel
+  box(zg, M.slat, UZ, UKC, yB, yTop, VF, DB + 0.5);
   // fronts (rows from bottom to top; the top row of the middle module is the glass niche)
   const dh = (x0, x1, y1) => ({ type: 'h', x: (x0 + x1) / 2, y: y1 - 6, len: 18 });
   function baseFronts(g, rows) {
