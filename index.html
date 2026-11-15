@@ -380,7 +380,7 @@ const M = {
   tvBody: std({ color: '#0e0e0f', roughness: 0.35, metalness: 0.4 }),
   tvScreen: new THREE.MeshPhysicalMaterial({ color: '#050505', emissive: '#ffffff', emissiveMap: screenTex, emissiveIntensity: 0.9, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.05 }),
   glass: new THREE.MeshPhysicalMaterial({ color: '#c9d3d5', transparent: true, opacity: 0.12, roughness: 0.03, metalness: 0, depthWrite: false }),
-  smoke: new THREE.MeshPhysicalMaterial({ color: '#151413', transparent: true, opacity: 0.78, roughness: 0.05, metalness: 0.15, depthWrite: false }),   // tinted glass
+  smoke: new THREE.MeshPhysicalMaterial({ color: '#0a0a0a', transparent: true, opacity: 0.92, roughness: 0.04, metalness: 0.2, depthWrite: false }),   // dark tinted glass
   led: std({ color: '#000', emissive: '#ffd9a8', emissiveIntensity: 3 }),
   downlight: std({ color: '#000', emissive: '#fff1dc', emissiveIntensity: 6 }),
   fabric: std({ color: '#a6aa9d', roughness: 1, normalMap: fabricNrm, normalScale: new THREE.Vector2(0.5, 0.5) }),
