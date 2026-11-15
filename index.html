@@ -85,7 +85,7 @@
         <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base molding 3 cm, szuflada dolna 25 cm, górna 45 cm, blat 2,5 cm (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm</li>
         
         <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami</li>
-        <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), bez dolnej szuflady i base moldingu</li>
+        <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
         <li>Szafki górne 193–238 cm (wys. 45), otwierane do góry, klamki poziome + blenda 1,9 cm nad nimi; z lewej biała blenda w kształcie C (1,9 cm)</li>
         <li>Szafa: 2 × 80 = 160 cm, do sufitu, gł. <b>60 cm</b>; w narożniku za zabudową fix panel 45 cm (narożnik szafy trzeba wyciąć pod komin, ok. 8 cm)</li>
         <li>Kąt między ścianą TV a ścianą szafy: <b>~103°</b> (zmierzony z rzutu; w narożniku klin wypełniony blendą)</li>
@@ -560,6 +560,7 @@ function pointLight(parent, color, intensity, dist, x, y, z) {
 }
 
 const baseLow = new THREE.Group();
+const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung variant: built-out wall under the cabinets
 /* =========================================================
    TV wall built-in (zabudowa)
    ========================================================= */
@@ -596,6 +597,8 @@ const baseLow = new THREE.Group();
     parent.add(finish(new THREE.Mesh(geo, mat)));
   }
   zg.add(baseLow);                                     // parts below 28 cm: hidden when the base units hang on the wall
+  zg.add(baseHang);
+  box(baseHang, M.wall, 0, UZ, 0, ROW, 0, KOM);         // built out 20 cm under the hanging cabinets, flush with the chimney
   wedge(M.front, KOM, DB + 0.6, 0, yP, baseLow);       // plinth
   wedge(M.front, KOM, DB, yP, ROW, baseLow);            // base filler (lower)
   wedge(M.front, KOM, DB, ROW, yB);                     // base filler
@@ -935,7 +938,7 @@ lightBtn.addEventListener('click', () => {
 const hangBtn = document.getElementById('hangBtn');
 hangBtn.addEventListener('click', () => {
   if (ptOn) stopPT();
-  baseLow.visible = !baseLow.visible;
+  baseLow.visible = !baseLow.visible; baseHang.visible = !baseLow.visible;
   hangBtn.textContent = baseLow.visible ? 'Szafki dolne wiszące (28 cm nad podłogą)' : 'Szafki dolne stojące (na base molding)';
   hangBtn.classList.toggle('on', !baseLow.visible); invalidate(true);
 });
