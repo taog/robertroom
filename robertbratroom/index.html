@@ -99,7 +99,7 @@
         <li>Szafki dolne: cokół 12 + korpus 75 + blat 4 = <b>91 cm</b></li>
         <li>Ściana z płytą (288): szuflady 96,5 (4 szt.: 15/15/15/30) | płyta 60,5 (2 szuflady – założenie) | cargo 20 | zlew 55 | narożnik cargo 56</li>
         <li>Ścianka kolankowa (gł. 56): blenda 3 | drzwi cargo 55 | 47 | 47 | drzwi cargo 55 | blenda 3 = 210</li>
-        <li>Ściana ze słupkami (288): narożnik 56 | blenda 3 | 50,5 | 50,5 | słupek 64 (zmywarka do 91, piekarnik 60, mikrofala 48, szafka, blenda pod skos) | lodówka 64 (do 199, szafki 40 i 22)</li>
+        <li>Ściana ze słupkami (288): narożnik 56 | blenda 3 | 50,5 | 50,5 | słupek 64 (zmywarka do 91, piekarnik 60, mikrofala 48) | lodówka 64 (do 199); nad mikrofalą i nad lodówką te same szafki 40 + 22 (do sufitu), nad mikrofalą róg ścięty skosem</li>
         <li>Głębokość ciągów z płytą i ze słupkami ok. <b>59 cm</b> (z rzutu: 328 − 204 − 2 × 3 blendy)</li>
         <li>Okap pod skosem nad płytą</li>
         <li>Kierunki otwierania drzwi i wnętrza szafek – orientacyjnie</li>
@@ -499,10 +499,27 @@ function carcass(g, x0, x1, y0, y1, z0, z1, shelves = [], mat = M.interior) {
   box(g, mat, x0 + t, x1 - t, y0 + t, y1 - t, z0, z0 + 0.8);
   for (const s of shelves) box(g, mat, x0 + t, x1 - t, s, s + t, z0 + 1, z1 - 2);
 }
+// rectangle x0..x1 × y0..y1 with its top clipped to y <= lim(x) (lim piecewise linear, kinks = its break x's); shifted by dx
+function clipShape(x0, x1, y0, y1, lim, kinks, dx = 0) {
+  const xs = new Set([x0, x1, ...kinks.filter(k => k > x0 && k < x1)]);
+  const sorted = [...xs].sort((a, b) => a - b);
+  for (let i = 0; i < sorted.length - 1; i++) {             // where lim crosses y1 or y0 inside a segment
+    const a = sorted[i], b = sorted[i + 1], la = lim(a), lb = lim(b);
+    for (const yy of [y0, y1]) if ((la - yy) * (lb - yy) < 0) xs.add(a + (yy - la) / (lb - la) * (b - a));
+  }
+  const top = [...xs].sort((a, b) => a - b).map(x => [x, Math.min(y1, lim(x))]).filter(([, y]) => y >= y0 - 1e-6);
+  if (top.length < 2) return null;
+  const pts = [V(top[0][0] + dx, y0), V(top[top.length - 1][0] + dx, y0)];
+  for (let i = top.length - 1; i >= 0; i--) pts.push(V(top[i][0] + dx, Math.max(y0, top[i][1])));
+  return new THREE.Shape(pts);
+}
 // hinged door; handle near the free edge. hv = [y0, y1] of a vertical handle
 function door(g, x0, x1, y0, y1, zf, hinge, o = {}) {
   const piv = new THREE.Group(), hx = hinge === 'L' ? x0 : x1; piv.position.set(hx, 0, zf); g.add(piv);
-  fpanel(piv, x0 - hx, x1 - hx, y0, y1, 0, o.mat || M.front);
+  if (o.lim) {                                               // panel cut to the ceiling slope
+    const gp = 0.15, sh = clipShape(x0 + gp, x1 - gp, y0 + gp, y1 - gp, o.lim, o.kinks || [], -hx);
+    if (sh) slab(piv, o.mat || M.front, sh, -PT, 0);
+  } else fpanel(piv, x0 - hx, x1 - hx, y0, y1, 0, o.mat || M.front);
   if (o.liner) box(piv, o.liner, x0 - hx + 3, x1 - hx - 3, y0 + 3, y1 - 3, -PT - (o.linerD || 4), -PT);
   const fx = hinge === 'L' ? x1 - hx - 3.5 : x0 - hx + 3.5;
   const hv = o.hv || [y1 - 22, y1 - 4];
@@ -633,8 +650,8 @@ const FT = 58.6, FB = 59.4, FR = 56;                    // front faces: hob wall
   box(g, M.plinth, FR - 6.6, c2 + PT, 0, PL, FB - 6.6, FB - 5);
 
   // --- tall column 64: dishwasher / oven / microwave / cabinet / filler under the slope
-  const top = 235;
-  carcass(g, s3, c1, PL, top, 0, zc, []);
+  const lim = (lx) => cxy(lx) - 0.5, kinks = [RX - FLATX];        // ceiling above local x, minus a small gap
+  carcass(g, s3, c1, PL, 199, 0, zc, []);
   box(g, M.front, s3 - 0.6, s3, YT, cxy(s3), 0, FB);                       // finished side above the worktop
   // dishwasher (integrated, door folds down)
   const dw = new THREE.Group(); dw.position.set(0, PL, FB); g.add(dw);
@@ -659,13 +676,17 @@ const FT = 58.6, FB = 59.4, FR = 56;                    // front faces: hob wall
   rpanel(g, M.ovenGlass, s3 + 0.4, c1 - 0.4, mw0 + 0.3, mw1 - 0.3, zc, FB, 0.3);
   box(g, M.ovenWin, s3 + 6, c1 - 18, mw0 + 8, mw1 - 8, FB, FB + 0.1, false);
   box(g, M.display, c1 - 13, c1 - 6, mw1 - 12, mw1 - 9.5, FB, FB + 0.1, false);
-  // cabinet above
-  box(g, M.interior, s3 + 1.8, c1 - 1.8, mw1, mw1 + 1.8, 0, zc);
-  door(g, s3, c1, mw1, top, FB, 'L', { hv: [mw1 + 3, mw1 + 21], ang: 100 });
-  // filler cut to the slope
-  const fs = new THREE.Shape([V(s3, top), V(c1, top), V(c1, cxy(c1)), V(Math.min(c1, RX - FLATX), H), V(s3, cxy(s3))]);
-  slab(g, M.front, fs, FB - PT, FB);
-  slab(g, M.interior, fs, 0, FB - PT);
+  // two cabinets above, the same heights as above the fridge (40 + 22); the roof slope cuts their outer corner
+  for (const [ya, yb] of [[199, 239], [239, H]]) {
+    door(g, s3, c1, ya, yb, FB, 'L', { lim, kinks, hv: [ya + 3, Math.min(yb - 3, ya + 18)], ang: 100 });
+    const sh = clipShape(s3, c1, ya, yb, lim, kinks);
+    if (!sh) continue;
+    const bk = slab(g, M.interior, sh, 0, 0.8);                              // back
+    box(g, M.interior, c1 - 1.8, c1, ya, yb, 0, zc);                           // inner side (full height)
+    if (lim(s3 + 1.8) > ya + 1) box(g, M.interior, s3, s3 + 1.8, ya, Math.min(yb, lim(s3 + 1.8)), 0, zc);  // outer side, cut by the slope
+    let xs = s3; while (xs < c1 && lim(xs) < ya + 1.8) xs += 0.5;               // shelf / bottom where it fits
+    box(g, M.interior, xs, c1 - 1.8, ya, ya + 1.8, 0, zc);
+  }
 
   // --- fridge column 64: fridge door to 199, cabinets 40 + 22
   carcass(g, c1, c2, PL, 199, 0, zc, [], M.fridgeIn);
@@ -967,6 +988,7 @@ requestAnimationFrame(tick);
 
 // testing hooks
 window.__goTo = (n) => { const v = VIEWS[n]; camera.position.copy(v.pos); controls.target.copy(v.target); camera.fov = v.fov || 55; camera.updateProjectionMatrix(); controls.update(); invalidate(); };
+window.__cam = (p, t) => { camera.position.set(...p); controls.target.set(...t); camera.fov = 55; camera.updateProjectionMatrix(); controls.update(); invalidate(); };
 window.__open = (o) => { openTarget = openK = o; openables.forEach(f => f(o)); invalidate(true); };
 
 addEventListener('resize', () => {
