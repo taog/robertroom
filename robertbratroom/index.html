@@ -85,7 +85,7 @@
     <div class="row" id="handles"></div>
 
     <span class="lbl">Szafki i scena</span>
-    <div class="row"><button id="openBtn">Otwórz szafki i szuflady</button><button id="decorBtn">Ukryj dekoracje</button><button id="lightBtn">Wyłącz cienie i światła</button></div>
+    <div class="row"><button id="openBtn">Otwórz szafki i szuflady</button><button id="decorBtn">Ukryj dekoracje</button><button id="personBtn">Ukryj człowieka 180 cm</button><button id="lightBtn">Wyłącz cienie i światła</button></div>
 
     <span class="lbl">Render</span>
     <button id="ptBtn" class="primary">Render fotorealistyczny</button>
@@ -102,6 +102,7 @@
         <li>Ściana ze słupkami (288): narożnik 56 | blenda 3 | 50,5 | 50,5 | słupek 64 (zmywarka do 91, piekarnik 60, mikrofala 48) | lodówka 64 (do 199); nad mikrofalą i nad lodówką te same szafki 40 + 22 (do sufitu), nad mikrofalą róg ścięty skosem</li>
         <li>Głębokość ciągów z płytą i ze słupkami ok. <b>59 cm</b> (z rzutu: 328 − 204 − 2 × 3 blendy)</li>
         <li>Okap pod skosem nad płytą</li>
+        <li>Człowiek 180 cm przy zlewie – dla skali; sufit nad zlewem ok. <b>169 cm</b> (przy przyjętym skosie)</li>
         <li>Kierunki otwierania drzwi i wnętrza szafek – orientacyjnie</li>
       </ul>
     </details>
@@ -732,6 +733,33 @@ const FT = 58.6, FB = 59.4, FR = 56;                    // front faces: hob wall
   for (let i = 0; i < 4; i++) { const u = cyl(d, M.wood, 0.6, 0.6, 26, 166.5 + i, YT + 18, 11 + (i % 2) * 2, 8); u.rotation.z = (i - 1.5) * 0.08; }
 }
 
+/* ---------- 180 cm person at the sink (scale figure) ---------- */
+const personG = new THREE.Group(); world.add(personG);
+{
+  const mat = std({ color: '#8f99a6', roughness: 0.85 });
+  const g = new THREE.Group(); personG.add(g);
+  const limb = (a, b, r) => {                       // capsule between two points (local cm)
+    const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A);
+    const m = finish(new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.1, d.length()), 6, 16), mat));
+    m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(m); return m;
+  };
+  for (const s of [-1, 1]) {
+    limb([s * 10, 9, 0], [s * 10, 50, 1], 6.5);               // shin
+    limb([s * 10, 52, 1], [s * 10, 92, 0], 8);                 // thigh
+    rbox(g, mat, 10, 6, 26, 2.5, s * 10, 3, 6);               // foot
+    limb([s * 21, 146, 0], [s * 22, 120, 9], 4.8);              // upper arm
+    limb([s * 22, 120, 9], [s * 15, 101, 34], 4);               // forearm (hands over the sink)
+    const hnd = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 12), mat); hnd.scale.set(0.8, 0.6, 1.3); hnd.position.set(s * 14, 100, 39); g.add(finish(hnd));
+  }
+  rbox(g, mat, 36, 20, 22, 8, 0, 100, 0);                       // pelvis
+  rbox(g, mat, 42, 44, 24, 10, 0, 128, 0);                      // torso
+  limb([-17, 146, 0], [17, 146, 0], 6);                         // shoulders
+  cyl(g, mat, 5, 5.5, 10, 0, 153, 0, 16);                       // neck
+  const head = new THREE.Mesh(new THREE.SphereGeometry(11, 24, 18), mat); head.scale.set(0.95, 1.18, 1.05); head.position.set(0, 167, 1); g.add(finish(head));
+  // stands facing the sink, toes ~8 cm from the cabinet fronts
+  g.position.set(204.5, 0, FT + 24); g.rotation.y = Math.PI;
+}
+
 /* =========================================================
    Lights
    ========================================================= */
@@ -897,6 +925,13 @@ decorBtn.addEventListener('click', () => {
   decorG.visible = !decorG.visible;
   decorBtn.textContent = decorG.visible ? 'Ukryj dekoracje' : 'Pokaż dekoracje';
   decorBtn.classList.toggle('on', !decorG.visible); invalidate(true);
+});
+const personBtn = document.getElementById('personBtn');
+personBtn.addEventListener('click', () => {
+  if (ptOn) stopPT();
+  personG.visible = !personG.visible;
+  personBtn.textContent = personG.visible ? 'Ukryj człowieka 180 cm' : 'Pokaż człowieka 180 cm';
+  personBtn.classList.toggle('on', !personG.visible); invalidate(true);
 });
 document.getElementById('minBtn').addEventListener('click', (e) => {
   const p = document.getElementById('panel'); p.classList.toggle('min');
