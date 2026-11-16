@@ -89,6 +89,7 @@
 
     <span class="lbl">Wariant zabudowy</span>
     <div class="row"><button id="variantBtn">Szafki pod skosem głębsze o 20 cm</button></div>
+    <div class="row" id="spiceRow" style="display:none;margin-top:6px"><button id="spiceBtn">Półki na przyprawy w rogu pod skosem</button></div>
     <div id="variantNote" class="sub" style="display:none;margin-top:6px">Ścianka kolankowa: 76 cm głębokości · szuflady 76,5 (było 96,5) · szafki przy słupku 2 × 40,5 (było 2 × 50,5) · zlew i płyta przesunięte o 20 cm w lewo – nad zlewem ok. 187 cm</div>
 
     <span class="lbl">Render</span>
@@ -107,6 +108,7 @@
         <li>Głębokość ciągów z płytą i ze słupkami ok. <b>59 cm</b> (z rzutu: 328 − 204 − 2 × 3 blendy)</li>
         <li>Okap pod skosem nad płytą</li>
         <li>Człowiek 180 cm przy zlewie – dla skali; sufit nad środkiem zlewu ok. <b>169 cm</b>, w wariancie z głębszymi szafkami pod skosem ok. <b>187 cm</b></li>
+        <li>Półki na przyprawy (tylko w wariancie głębszym): tylne 20 cm blatu pod skosem, na całej długości ścianki kolankowej (328), 4 drzwiczki przesuwne na 2 prowadnicach, 3 przegrody; wys. frontu ok. 18 cm (91–109), góra pod skos</li>
         <li>Wariant „głębsze o 20 cm”: ścianka kolankowa gł. 76; szuflady 965 → 765; szafki 505 → 405 (2 szt.); płyta, cargo i zlew przesunięte o 20 cm w stronę otwartej ściany</li>
         <li>Kierunki otwierania drzwi i wnętrza szafek – orientacyjnie</li>
       </ul>
@@ -676,7 +678,63 @@ const dg = new THREE.Group(); root.add(dg); variantDecor.push(dg);
   // kettle-like jar + utensil crock by the hob
   cyl(dg, M.ceramic, 5, 5, 16, 168 + d, YT + 8, 12, 24);
   for (let i = 0; i < 4; i++) { const u = cyl(dg, M.wood, 0.6, 0.6, 26, 166.5 + d + i, YT + 18, 11 + (i % 2) * 2, 8); u.rotation.z = (i - 1.5) * 0.08; }
-return { root, d, DW, BW: (160 - FR - 3) / 2 };
+  // cutting board + bowl with fruit on the knee-wall run (moved forward in the deep variant)
+  {
+    const bx = 1.5 * d;
+    rpanel(dg, M.wood, 255 + bx, 285 + bx, YT, YT + 2, 100, 140, 0.8);
+    const bowl = new THREE.Mesh(new THREE.SphereGeometry(13, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.bowl);
+    bowl.scale.set(1, 0.5, 1); bowl.position.set(258 + bx, YT + 6.6, 205); dg.add(finish(bowl));
+    for (const [dx, dz, m] of [[-4, -3, M.fruit], [4, -2, M.fruit], [0, 4, M.green], [-1, 0, M.fruit]]) {
+      const f = new THREE.Mesh(new THREE.SphereGeometry(3.8, 20, 14), m); f.position.set(258 + bx + dx, YT + 6.5 + (dx === -1 ? 4 : 0), 205 + dz); dg.add(finish(f));
+    }
+  }
+  /* ---------- spice shelf with sliding doors: the back 20 cm of the deep worktop, tucked under the slope ---------- */
+  let spiceG = null;
+  if (FR > 56) {
+    spiceG = new THREE.Group(); spiceG.visible = false; root.add(spiceG);
+    const s = spiceG, xb = RX, xf = RX - 20, y0 = YT, L = RZ;          // 20 cm deep, full length of the knee wall
+    const prof = (x0, x1, ya, top) => new THREE.Shape([V(x0, ya), V(x1, ya), V(x1, top(x1)), V(x0, top(x0))]);
+    const ext = (mat, shape, z0, z1) => {                              // profile in the x–y plane, extruded along z
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: z1 - z0, bevelEnabled: false }); geo.translate(0, 0, z0);
+      const m = finish(new THREE.Mesh(geo, mat)); s.add(m); return m;
+    };
+    const under = (x) => cy(x) - 0.4;
+    box(s, M.interior, xf, xb, y0, y0 + 1.6, 0, L);                     // bottom board on the worktop
+    ext(M.interior, new THREE.Shape([V(xf + 1, under(xf + 1) - 1.6), V(xb, under(xb) - 1.6), V(xb, under(xb)), V(xf + 1, under(xf + 1))]), 0, L);   // sloped top board
+    for (const z of [0, L - 1.8, 82, 164, 246]) ext(M.interior, prof(xf + 2, xb, y0 + 1.6, x => under(x) - 1.6), z, z + 1.8);  // ends + dividers
+    // front: bottom guide, top rail and a fascia up to the slope
+    const t0 = xf - 3.2, t1 = xf, yr0 = 107.4, yr1 = 109.2;
+    box(s, M.front, t0, t1, y0, y0 + 1.6, 0, L);
+    box(s, M.front, t0, t1, yr0, yr1, 0, L);
+    ext(M.front, prof(t0, t1, yr1, x => under(x)), 0, L);
+    // four sliding doors on two tracks
+    const dl = L / 4 + 1;
+    for (let i = 0; i < 4; i++) {
+      const g = new THREE.Group(); s.add(g);
+      const outer = i % 2 === 0, x0 = outer ? t0 + 0.1 : t0 + 1.6, z0 = i * L / 4 - (i ? 0.5 : 0), z1 = Math.min(L, z0 + dl);
+      rpanel(g, M.front, x0, x0 + 1.4, y0 + 1.7, yr0 - 0.1, z0 + 0.1, z1 - 0.1, 0.2);
+      const zh = outer ? z1 - 4 : z0 + 4;                                 // finger pull at the meeting edge
+      box(g, M.handle, x0 - 0.1, x0 + 0.2, y0 + 5, yr0 - 4, zh - 0.6, zh + 0.6, false);
+      if (!outer) openables.push((k) => { g.position.z = -(L / 4 - 2) * k; });   // inner doors slide over the outer ones
+    }
+    // spice jars
+    const jarCols = ['#b5482d', '#d9a22b', '#5d7a3a', '#7a4a2a', '#c96f2a', '#e8e1d2', '#3f3a36'];
+    const lid = std({ color: '#2a2a2a', metalness: 0.5, roughness: 0.4 }), glass = new THREE.MeshPhysicalMaterial({ color: '#e9efee', transparent: true, opacity: 0.35, roughness: 0.05, depthWrite: false });
+    const jarMats = jarCols.map(c => std({ color: c, roughness: 0.9 }));
+    const jarG = new THREE.Group(); s.add(jarG); variantDecor.push(jarG);
+    let n = 0;
+    for (const [xj, h, r] of [[xf + 4.5, 10, 2.3], [xf + 10.5, 7, 2.1]]) {
+      for (let z = 4; z < L - 4; z += 6.2) {
+        if ([82, 164, 246].some(dz => Math.abs(z - dz) < 4)) continue;
+        if (y0 + 1.6 + h + 1.6 > under(xj + r)) continue;
+        const m = jarMats[(n++ * 3) % jarMats.length];
+        cyl(jarG, m, r * 0.88, r * 0.88, h - 2.2, xj, y0 + 1.6 + (h - 2.2) / 2 + 0.3, z, 14).castShadow = false;
+        cyl(jarG, glass, r, r, h - 1.6, xj, y0 + 1.6 + (h - 1.6) / 2, z, 16).castShadow = false;
+        cyl(jarG, lid, r + 0.1, r + 0.1, 1.6, xj, y0 + 1.6 + h - 0.8, z, 16);
+      }
+    }
+  }
+return { root, d, DW, BW: (160 - FR - 3) / 2, spiceG };
 }
 const VARIANTS = [buildVariant(56), buildVariant(76)];
 VARIANTS[1].root.visible = false;
@@ -744,13 +802,6 @@ VARIANTS[1].root.visible = false;
 /* ---------- decor ---------- */
 {
   const d = decorG;
-  // cutting board + bowl with fruit on the knee-wall run
-  rpanel(d, M.wood, 255, 285, YT, YT + 2, 100, 140, 0.8);
-  const bowl = new THREE.Mesh(new THREE.SphereGeometry(13, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.bowl);
-  bowl.scale.set(1, 0.5, 1); bowl.position.set(258, YT + 6.6, 205); d.add(finish(bowl));
-  for (const [dx, dz, m] of [[-4, -3, M.fruit], [4, -2, M.fruit], [0, 4, M.green], [-1, 0, M.fruit]]) {
-    const f = new THREE.Mesh(new THREE.SphereGeometry(3.8, 20, 14), m); f.position.set(258 + dx, YT + 6.5 + (dx === -1 ? 4 : 0), 205 + dz); d.add(finish(f));
-  }
   // plant on the drawer unit
   cyl(d, M.ceramicDark, 7, 5.5, 14, 20, YT + 7, 28, 28);
   for (let i = 0; i < 9; i++) {
@@ -961,9 +1012,18 @@ function setVariant(v) {
   variantBtn.classList.toggle('on', v === 1);
   variantBtn.textContent = v ? 'Wróć do wersji ze szkicu' : 'Szafki pod skosem głębsze o 20 cm';
   document.getElementById('variantNote').style.display = v ? 'block' : 'none';
+  document.getElementById('spiceRow').style.display = v ? 'flex' : 'none';
   invalidate(true);
 }
 variantBtn.addEventListener('click', () => { if (ptOn) stopPT(); setVariant(variant ? 0 : 1); });
+const spiceBtn = document.getElementById('spiceBtn');
+function setSpice(on) {
+  const sg = VARIANTS[1].spiceG; sg.visible = on;
+  spiceBtn.classList.toggle('on', on);
+  spiceBtn.textContent = on ? 'Ukryj półki na przyprawy' : 'Półki na przyprawy w rogu pod skosem';
+  invalidate(true);
+}
+spiceBtn.addEventListener('click', () => { if (ptOn) stopPT(); setSpice(!VARIANTS[1].spiceG.visible); });
 const personBtn = document.getElementById('personBtn');
 personBtn.addEventListener('click', () => {
   if (ptOn) stopPT();
@@ -1063,6 +1123,7 @@ requestAnimationFrame(tick);
 window.__goTo = (n) => { const v = VIEWS[n]; camera.position.copy(v.pos); controls.target.copy(v.target); camera.fov = v.fov || 55; camera.updateProjectionMatrix(); controls.update(); invalidate(); };
 window.__cam = (p, t) => { camera.position.set(...p); controls.target.set(...t); camera.fov = 55; camera.updateProjectionMatrix(); controls.update(); invalidate(); };
 window.__variant = (v) => setVariant(v);
+window.__spice = (o) => setSpice(!!o);
 window.__open = (o) => { openTarget = openK = o; openables.forEach(f => f(o)); invalidate(true); };
 
 addEventListener('resize', () => {
