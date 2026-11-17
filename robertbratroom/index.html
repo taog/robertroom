@@ -437,6 +437,7 @@ const M = {
   bowl: std({ color: '#ece6dc', roughness: 0.3, side: THREE.DoubleSide }),
   ceramicDark: std({ color: '#3a3936', roughness: 0.35 }),
   leaf: std({ color: '#4c6a42', roughness: 0.75, side: THREE.DoubleSide }),
+  soil: std({ color: '#3b2b1f', roughness: 1 }),
   fruit: std({ color: '#d8892c', roughness: 0.55 }),
   green: std({ color: '#8fae4a', roughness: 0.55 }),
   linen: std({ color: '#d8cfc0', roughness: 1, normalMap: fabricNrm, normalScale: new THREE.Vector2(0.4, 0.4) }),
@@ -854,10 +855,44 @@ const panelG = new THREE.Group(); world.add(panelG);
   for (const [dx, dz, m] of [[-4, -3, M.fruit], [4, -2, M.fruit], [0, 4, M.green], [-1, 0, M.fruit]]) {
     const f = new THREE.Mesh(new THREE.SphereGeometry(3.8, 20, 14), m); f.position.set(258 + dx, YT + 6.5 + (dx === -1 ? 4 : 0), 205 + dz); d.add(finish(f));
   }
-  cyl(d, M.ceramicDark, 7, 5.5, 14, 130, YT + 7, 28, 28);                 // plant on the drawer unit
-  for (let i = 0; i < 9; i++) {
-    const l = new THREE.Mesh(new THREE.PlaneGeometry(5, 26), M.leaf); const a = i / 9 * Math.PI * 2;
-    l.position.set(130 + Math.cos(a) * 4, YT + 26, 28 + Math.sin(a) * 4); l.rotation.set(Math.sin(a) * 0.35, a, Math.cos(a) * 0.35); d.add(finish(l));
+  // small cannabis plant in a pot on the drawer unit
+  {
+    const px = 130, pz = 28, soil = YT + 13;
+    cyl(d, M.ceramicDark, 7, 5.5, 14, px, YT + 7, pz, 28);
+    cyl(d, M.soil, 6.6, 6.6, 0.4, px, soil, pz, 24).castShadow = false;
+    const hemp = std({ color: '#3d7a2c', roughness: 0.7, side: THREE.DoubleSide });
+    const stemM = std({ color: '#6a8f3c', roughness: 0.8 });
+    // one serrated, lance-shaped leaflet pointing +y, length L
+    const leaflet = (L) => {
+      const w = L * 0.13, n = 9, s = new THREE.Shape(); s.moveTo(0, 0);
+      for (let i = 1; i <= n; i++) { const t = i / n, x = w * Math.sin(Math.PI * Math.min(1, t * 1.15)) ; s.lineTo(x * 1.25, L * (t - 0.5 / n)); s.lineTo(x * 0.85, L * t); }
+      s.lineTo(0, L * 1.02);
+      for (let i = n; i >= 1; i--) { const t = i / n, x = w * Math.sin(Math.PI * Math.min(1, t * 1.15)); s.lineTo(-x * 0.85, L * t); s.lineTo(-x * 1.25, L * (t - 0.5 / n)); }
+      s.lineTo(0, 0);
+      return new THREE.ShapeGeometry(s);
+    };
+    // fan leaf: 7 leaflets on a petiole; points along +y before rotation
+    const fanLeaf = (L, pet) => {
+      const g = new THREE.Group();
+      const c = cyl(g, stemM, 0.18, 0.22, pet, 0, pet / 2, 0, 6); c.castShadow = false;
+      [0.45, 0.7, 0.9, 1, 0.9, 0.7, 0.45].forEach((k, i) => {
+        const m = new THREE.Mesh(leaflet(L * k), hemp); m.position.set(0, pet, 0); m.rotation.z = (i - 3) * 0.42; g.add(finish(m));
+      });
+      return g;
+    };
+    const stemH = 30;
+    cyl(d, stemM, 0.35, 0.55, stemH, px, soil + stemH / 2, pz, 8);
+    [[4, 13, 6], [9, 12, 5.5], [14, 10.5, 5], [19, 8.5, 4], [23.5, 6.5, 3], [27, 4.5, 2]].forEach(([h, L, pet], i) => {
+      for (const side of [0, Math.PI]) {
+        const lf = fanLeaf(L, pet); lf.position.set(px, soil + h, pz);
+        lf.rotation.order = 'YXZ'; lf.rotation.y = i * Math.PI / 2 + side + 0.3; lf.rotation.x = deg(78 - i * 7);
+        d.add(lf);
+      }
+    });
+    for (let i = 0; i < 5; i++) {                                             // small leaves at the top
+      const lf = fanLeaf(3.2, 0.8); lf.position.set(px, soil + stemH - 0.5, pz);
+      lf.rotation.order = 'YXZ'; lf.rotation.y = i / 5 * Math.PI * 2; lf.rotation.x = deg(25); d.add(lf);
+    }
   }
   cyl(d, M.ceramic, 5, 5, 16, 70, YT + 8, 12, 24);                        // utensil crock next to the hob
   for (let i = 0; i < 4; i++) { const u = cyl(d, M.wood, 0.6, 0.6, 26, 68.5 + i, YT + 18, 11 + (i % 2) * 2, 8); u.rotation.z = (i - 1.5) * 0.08; }
