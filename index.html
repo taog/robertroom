@@ -32,6 +32,11 @@
   #status { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); font-size:12px; color:#3b3f45; background:rgba(255,255,255,.82);
     padding:6px 12px; border-radius:20px; white-space:nowrap; max-width:calc(100vw - 24px); overflow:hidden; text-overflow:ellipsis; }
   #loading { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:var(--mute); font-size:14px; }
+  .swatches { display:grid; grid-template-columns:repeat(9, 1fr); gap:5px; }
+  .swatch { height:24px; padding:0; border-radius:6px; border:1px solid rgba(0,0,0,.18); box-shadow:inset 0 0 0 2px #fff; }
+  .swatch.on { outline:2px solid var(--ink); outline-offset:1px; }
+  .swname { font-size:12px; color:var(--mute); margin-top:5px; }
+  .swname b { color:var(--ink); font-weight:600; }
   .slider { display:block; font-size:12px; color:var(--mute); margin-top:8px; }
   .slider b { color:var(--ink); font-weight:600; }
   .slider input { width:100%; margin-top:4px; accent-color:#8a6a45; }
@@ -77,11 +82,17 @@
       <button data-view="top">Z góry</button>
     </div>
 
-    <span class="lbl">Kolorystyka</span>
-    <div class="row" id="schemes"></div>
+    <span class="lbl">Kolor frontów</span>
+    <div class="swatches" id="schemes"></div>
+    <div class="swname">Fronty: <b id="schemeName"></b></div>
 
-    <span class="lbl">Kolor lameli i blatu</span>
-    <div class="row" id="slats"></div>
+    <span class="lbl">Kolor lameli</span>
+    <div class="swatches" id="slats"></div>
+    <div class="swname">Lamele: <b id="slatName"></b></div>
+
+    <span class="lbl">Kolor blatu</span>
+    <div class="swatches" id="tops"></div>
+    <div class="swname">Blat: <b id="topName"></b></div>
     <label class="slider">Przyciemnienie: drzwi, lamele, blat <b id="darkVal">0%</b>
       <input type="range" id="dark" min="0" max="100" value="0" step="1"></label>
 
@@ -100,7 +111,7 @@
       <ul>
         <li>Wysokość pokoju: <b>245 cm</b>; wysokość mebli (zabudowa i szafa): <b>240 cm</b></li>
         <li>Ściana skośna 469 cm = <b>275</b> zabudowa + <b>145</b> komin + <b>49</b> do narożnika</li>
-        <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base 8 cm, dwie równe szuflady po 32,5 cm, blat 2,5 cm (w kolorze lameli) (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm; pod szafą ten sam base 8 cm</li>
+        <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base 8 cm, dwie równe szuflady po 32,5 cm, blat 2,5 cm (kolor wybierany osobno) (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm; pod szafą ten sam base 8 cm</li>
         
         <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami; LED dookoła TV we wnęce</li>
         <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
@@ -387,6 +398,7 @@ const M = {
   woodDark: std({ color: '#3c2d20', roughness: 0.85 }),
   slat: std({ color: '#c79c6c', map: grainTex, normalMap: grainNrm, normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.5 }),
   slatDark: std({ color: '#3c2d20', roughness: 0.85 }),
+  top: std({ color: '#c79c6c', map: grainTex, normalMap: grainNrm, normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.45 }),
   handle: std({ color: '#1e1e1e', metalness: 0.6, roughness: 0.32 }),
   interior: std({ color: '#ece8e1', roughness: 0.75 }),
   tvBody: std({ color: '#0e0e0f', roughness: 0.35, metalness: 0.4 }),
@@ -422,14 +434,34 @@ const M = {
   shade: std({ color: '#f1e9da', emissive: '#ffd7a0', emissiveIntensity: 0.6, roughness: 1, side: THREE.DoubleSide }),
 };
 
+// front finishes: kind 'paint' (lacquer / laminate), 'wood' (veneer / wood-look, with grain) or 'steel'
 const SCHEMES = [
-  { name: 'Biały + dąb', front: '#efede8', carcass: '#dedad3', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Beż + dąb', front: '#d5ccbe', carcass: '#c6bcad', wood: '#cfa877', handle: '#262626', metal: 0.6 },
-  { name: 'Szałwia + dąb', front: '#9ea893', carcass: '#8e9884', wood: '#c9a06f', handle: '#b8955c', metal: 0.9 },
-  { name: 'Grafit + orzech', front: '#3b3d40', carcass: '#2f3133', wood: '#80583a', handle: '#b8955c', metal: 0.9 },
+  { name: 'Biały', front: '#efede8', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Kremowy', front: '#ece3d0', wood: '#c79c6c', handle: '#b8955c', metal: 0.9 },
+  { name: 'Beż / kaszmir', front: '#d5ccbe', wood: '#cfa877', handle: '#262626', metal: 0.6 },
+  { name: 'Szary jasny', front: '#c8c8c5', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Szałwia', front: '#9ea893', wood: '#c9a06f', handle: '#b8955c', metal: 0.9 },
+  { name: 'Butelkowa zieleń', front: '#2f4a3d', wood: '#c9a06f', handle: '#b8955c', metal: 0.9 },
+  { name: 'Granat', front: '#2c3a52', wood: '#c79c6c', handle: '#b8955c', metal: 0.9 },
+  { name: 'Grafit / antracyt', front: '#3b3d40', wood: '#80583a', handle: '#b8955c', metal: 0.9 },
+  { name: 'Czarny mat', front: '#232323', wood: '#c79c6c', handle: '#b8955c', metal: 0.9, rough: 0.7 },
+  { name: 'Dąb bielony', front: '#e3d6bf', kind: 'wood', wood: '#e3d6bf', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Dąb jasny', front: '#dcc196', kind: 'wood', wood: '#dcc196', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Dąb naturalny', front: '#c79c6c', kind: 'wood', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Dąb miodowy', front: '#c58b4e', kind: 'wood', wood: '#c58b4e', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Dąb szary (sonoma)', front: '#a99c88', kind: 'wood', wood: '#a99c88', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Dąb wędzony', front: '#5e4431', kind: 'wood', wood: '#5e4431', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Orzech', front: '#7a5236', kind: 'wood', wood: '#7a5236', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Wenge', front: '#3f2c22', kind: 'wood', wood: '#3f2c22', handle: '#b8955c', metal: 0.9 },
+  { name: 'Stal szczotkowana', front: '#aeb0b3', kind: 'steel', wood: '#c79c6c', handle: '#2a2a2a', metal: 0.6 },
 ];
 function applyScheme(s) {
-  M.front.color.set(s.front); M.carcass.color.set(s.carcass);
+  const wood = s.kind === 'wood', steel = s.kind === 'steel';
+  for (const m of [M.front, M.carcass]) {
+    m.map = wood ? grainTex : null; m.normalMap = wood ? grainNrm : null; m.normalScale.set(0.3, 0.3);
+    m.metalness = steel ? 0.85 : 0; m.roughness = steel ? 0.32 : (s.rough || (wood ? 0.5 : 0.42)); m.needsUpdate = true;
+  }
+  M.front.color.set(s.front); M.carcass.color.set(s.front).multiplyScalar(wood || steel ? 0.92 : 0.94);
   M.wood.color.set(s.wood); M.woodDark.color.set(s.wood).multiplyScalar(0.32);
   M.handle.color.set(s.handle); M.handle.metalness = s.metal;
 }
@@ -745,7 +777,7 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   wedge(M.front, KOM, DB + 0.6, 0, yP, baseLow);       // plinth
   wedge(M.front, KOM, DB, yP, HANG, baseLow);           // base filler (lower)
   wedge(M.front, KOM, DB, HANG, yB);                    // base filler
-  wedge(M.slat, KOM + 2.6, DB + 0.5, yB, yTop);         // top (same colour as the slats)
+  wedge(M.top, KOM + 2.6, DB + 0.5, yB, yTop);          // top
   wedge(M.slatDark, KOM, KOM + 2.6, yTop, yU0);         // behind the slats
   wedge(M.front, KOM, DU, yU0, yU1);                    // upper filler
 
@@ -758,8 +790,8 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
   box(baseLow, M.carcass, 2 * cw, UZ, yP, HANG, 0, DB - 1.9); box(zg, M.carcass, 2 * cw, UZ, HANG, yB, 0, DB - 1.9);
   box(baseLow, M.carcass, UZ, UKC, yP, HANG, KOM, DB - 1.9); box(zg, M.carcass, UZ, UKC, HANG, yB, KOM, DB - 1.9);
   // top
-  box(zg, M.slat, -1.9, UZ, yB, yTop, VF, DB + 0.5);        // top only where it shows, runs over the end panel
-  box(zg, M.slat, UZ, UKC, yB, yTop, VF, DB + 0.5);
+  box(zg, M.top, -1.9, UZ, yB, yTop, VF, DB + 0.5);        // top only where it shows, runs over the end panel
+  box(zg, M.top, UZ, UKC, yB, yTop, VF, DB + 0.5);
   // fronts (rows from bottom to top; the top row of the middle module is the glass niche)
   const dh = (x0, x1, y1) => ({ type: 'h', x: (x0 + x1) / 2, y: y1 - 6, len: 18 });
   function baseFronts(g, rows) {
@@ -1067,34 +1099,78 @@ document.querySelectorAll('#views button').forEach(b => b.addEventListener('clic
   goTo(b.dataset.view);
 }));
 const schemesEl = document.getElementById('schemes');
-SCHEMES.forEach((s, i) => {
-  const b = document.createElement('button'); b.className = 'sw' + (i === 0 ? ' on' : '');
-  b.innerHTML = `<span class="chip"><i style="background:${s.front}"></i><i style="background:${s.wood}"></i></span>${s.name}`;
-  b.addEventListener('click', () => {
-    applyScheme(s); invalidate(); schemesEl.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-    if (ptOn && pt) { pt.updateMaterials(); pt.reset(); }
+// colour swatches: wood shows grain stripes, steel a brushed gradient
+function swatchBg(color, kind) {
+  if (kind === 'wood') return `repeating-linear-gradient(100deg, ${color} 0 5px, color-mix(in srgb, ${color} 82%, #000) 5px 6px, ${color} 6px 9px)`;
+  if (kind === 'steel') return `linear-gradient(135deg, #8f9194, #d6d8da 45%, #9a9c9f 55%, #c9cbcd)`;
+  return color;
+}
+function picker(el, items, kindOf, onPick, nameEl) {
+  items.forEach((it, i) => {
+    const b = document.createElement('button'); b.className = 'swatch' + (i === 0 ? ' on' : ''); b.title = it.name;
+    b.style.background = swatchBg(it.color || it.front, kindOf(it));
+    b.addEventListener('click', () => {
+      onPick(it); invalidate(); el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      nameEl.textContent = it.name;
+      if (ptOn && pt) { pt.updateMaterials(); pt.reset(); }
+    });
+    el.appendChild(b);
   });
-  schemesEl.appendChild(b);
-});
+  nameEl.textContent = items[0].name;
+}
+picker(schemesEl, SCHEMES, s => s.kind, applyScheme, document.getElementById('schemeName'));
 applyScheme(SCHEMES[0]);
 const SLATS = [
   { name: 'Dąb naturalny', color: '#c79c6c' },
   { name: 'Dąb bielony', color: '#e4d8c4' },
+  { name: 'Dąb jasny', color: '#dcc196' },
+  { name: 'Dąb miodowy', color: '#c58b4e' },
+  { name: 'Dąb szary (sonoma)', color: '#a99c88' },
+  { name: 'Tik', color: '#9a6a3f' },
   { name: 'Orzech', color: '#7a5236' },
   { name: 'Dąb wędzony', color: '#4e3726' },
-  { name: 'Czarny mat', color: '#2b2a28' },
+  { name: 'Wenge', color: '#3d2b22' },
   { name: 'Jak drzwi (orzech)', color: '#b4805e' },
+  { name: 'Biały mat', color: '#ecebe7', paint: true },
+  { name: 'Szary / antracyt', color: '#4a4c4f', paint: true },
+  { name: 'Czarny mat', color: '#2b2a28', paint: true },
+  { name: 'Szałwia', color: '#9ea893', paint: true },
 ];
 const slatsEl = document.getElementById('slats');
-let curSlat = null, darkK = 0;
+let curSlat = null, curTop = null, darkK = 0;
+const TOPS = [
+  { name: 'Dąb naturalny', color: '#c79c6c' },
+  { name: 'Dąb bielony', color: '#e4d8c4' },
+  { name: 'Dąb jasny', color: '#dcc196' },
+  { name: 'Dąb miodowy', color: '#c58b4e' },
+  { name: 'Dąb szary (sonoma)', color: '#a99c88' },
+  { name: 'Buk', color: '#d4a574' },
+  { name: 'Jesion', color: '#e0cfae' },
+  { name: 'Tik', color: '#9a6a3f' },
+  { name: 'Orzech', color: '#7a5236' },
+  { name: 'Dąb wędzony', color: '#4e3726' },
+  { name: 'Wenge', color: '#3d2b22' },
+  { name: 'Jak drzwi (orzech)', color: '#b4805e' },
+  { name: 'Biały mat', color: '#ecebe7', paint: true },
+  { name: 'Beton / kamień szary', color: '#9d9b97', paint: true },
+  { name: 'Czarny mat', color: '#2b2a28', paint: true },
+];
+const topsEl = document.getElementById('tops');
+function applyTop(c) {
+  curTop = c; M.top.roughness = c.paint ? 0.6 : 0.45;
+  M.top.map = c.paint ? null : grainTex; M.top.normalMap = c.paint ? null : grainNrm; M.top.needsUpdate = true;
+  applyWoodTone();
+}
 const DOOR_BASE = new THREE.Color(M.doorWood.color.getHex());
 function applyWoodTone() {                      // one slider darkens the door, the slats and the top together
   const f = 1 - darkK * 0.8;
   M.slat.color.set(curSlat.color).multiplyScalar(f); M.slatDark.color.set(curSlat.color).multiplyScalar(0.32 * f);
   M.doorWood.color.copy(DOOR_BASE).multiplyScalar(f);
+  if (curTop) M.top.color.set(curTop.color).multiplyScalar(f);
 }
 function applySlat(c) {
-  curSlat = c; M.slat.roughness = c.name === 'Czarny mat' ? 0.7 : 0.5;
+  curSlat = c; M.slat.roughness = c.paint ? 0.65 : 0.5;
+  M.slat.map = c.paint ? null : grainTex; M.slat.normalMap = c.paint ? null : grainNrm; M.slat.needsUpdate = true;
   applyWoodTone();
 }
 const darkEl = document.getElementById('dark'), darkVal = document.getElementById('darkVal');
@@ -1103,16 +1179,9 @@ darkEl.addEventListener('input', () => {
   applyWoodTone(); invalidate();
   if (ptOn && pt) { pt.updateMaterials(); pt.reset(); }
 });
-SLATS.forEach((c, i) => {
-  const b = document.createElement('button'); b.className = 'sw' + (i === 0 ? ' on' : '');
-  b.innerHTML = `<span class="chip"><i style="background:${c.color}"></i></span>${c.name}`;
-  b.addEventListener('click', () => {
-    applySlat(c); invalidate(); slatsEl.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-    if (ptOn && pt) { pt.updateMaterials(); pt.reset(); }
-  });
-  slatsEl.appendChild(b);
-});
-applySlat(SLATS[0]);
+picker(slatsEl, SLATS, c => c.paint ? 'paint' : 'wood', applySlat, document.getElementById('slatName'));
+picker(topsEl, TOPS, c => c.paint ? 'paint' : 'wood', applyTop, document.getElementById('topName'));
+applySlat(SLATS[0]); applyTop(TOPS[0]);
 let doorsOpen = 0, doorsTarget = 0;
 const doorsBtn = document.getElementById('doors');
 doorsBtn.addEventListener('click', () => {
