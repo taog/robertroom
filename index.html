@@ -86,21 +86,15 @@
     <div class="swatches" id="schemes"></div>
     <div class="swname">Fronty: <b id="schemeName"></b></div>
 
-    <span class="lbl">Kolor lameli</span>
+    <span class="lbl">Kolor lameli i blatu</span>
     <div class="swatches" id="slats"></div>
-    <div class="swname">Lamele: <b id="slatName"></b></div>
-
-    <span class="lbl">Kolor blatu</span>
-    <div class="swatches" id="tops"></div>
-    <div class="swname">Blat: <b id="topName"></b></div>
+    <div class="swname">Lamele i blat: <b id="slatName"></b></div>
     <label class="slider">Przyciemnienie: drzwi, lamele, blat <b id="darkVal">0%</b>
       <input type="range" id="dark" min="0" max="100" value="0" step="1"></label>
 
     <span class="lbl">Szafa i meble</span>
     <div class="row"><button id="doors">Otwórz drzwi szafy</button><button id="furnBtn">Ukryj meble i dekoracje</button><button id="lightBtn">Wyłącz cienie i światła</button></div>
 
-    <span class="lbl">Wariant zabudowy</span>
-    <div class="row"><button id="hangBtn">Szafki dolne wiszące (28 cm nad podłogą)</button></div>
 
     <span class="lbl">Render</span>
     <button id="ptBtn" class="primary">Render fotorealistyczny</button>
@@ -111,10 +105,10 @@
       <ul>
         <li>Wysokość pokoju: <b>245 cm</b>; wysokość mebli (zabudowa i szafa): <b>240 cm</b></li>
         <li>Ściana skośna 469 cm = <b>275</b> zabudowa + <b>145</b> komin + <b>49</b> do narożnika</li>
-        <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base 8 cm, dwie równe szuflady po 32,5 cm, blat 2,5 cm (kolor wybierany osobno) (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm; pod szafą ten sam base 8 cm</li>
+        <li>Ścianka z TV (pas lamel 75,5–193 cm) wysunięta o 20 cm od ściany, zlicowana z kominem</li><li>Cała zabudowa (dół i góra) gł. 41 cm od właściwej ściany; przed kominem 21 cm</li><li>Dół: base 8 cm, dwie równe szuflady po 32,5 cm, blat 2,5 cm (w kolorze lameli) (razem 75,5 cm); 3 moduły po ~92 cm; przed kominem fix panele ~137 cm; pod szafą ten sam base 8 cm</li>
         
         <li>TV 65" (ok. 145 × 83,5 cm) we wnęce 152 × 96,5 cm, front zlicowany z lamelami; LED dookoła TV we wnęce</li>
-        <li>Wariant wiszący: szafki dolne 28–73 cm (wys. 45), pod nimi zabudowa 20 cm zlicowana z kominem</li>
+
         <li>Szafki górne 193–238 cm (wys. 45), otwierane do góry, klamki poziome + blenda 1,9 cm nad nimi (w kolorze frontów); z lewej blenda w kształcie C (1,9 cm, w kolorze frontów), na wysokości lameli bok zamknięty lamelami do ściany</li>
         <li>Szafa: fix 30 + 2 × 87,5 cm, wys. 240 cm, gł. <b>60 cm</b>; lewa część sięga w narożnik za zabudową (wnętrze ok. 115 cm); narożnik wyciąć pod komin (ok. 8 cm)</li>
         <li>Kąt między ścianą TV a ścianą szafy: <b>~103°</b> (zmierzony z rzutu; w narożniku klin wypełniony blendą)</li>
@@ -129,10 +123,9 @@
 <div id="cad">
   <div id="cadBar">
     <button data-sheet="1" class="on">Rzut</button>
-    <button data-sheet="2">Widok A – stojące</button>
-    <button data-sheet="3">Widok A2 – wiszące</button>
-    <button data-sheet="4">Szafa</button>
-    <button data-sheet="5">Przekrój</button>
+    <button data-sheet="2">Widok A – ściana TV</button>
+    <button data-sheet="3">Szafa</button>
+    <button data-sheet="4">Przekrój</button>
     <span class="sp"></span>
     <button id="cadOut">−</button><button id="cadFit">Dopasuj</button><button id="cadIn">+</button>
     <a href="cad/salon_zabudowa_szafa.pdf" target="_blank" rel="noopener">PDF</a>
@@ -437,23 +430,19 @@ const M = {
 // front finishes: kind 'paint' (lacquer / laminate), 'wood' (veneer / wood-look, with grain) or 'steel'
 const SCHEMES = [
   { name: 'Biały', front: '#efede8', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Kremowy', front: '#ece3d0', wood: '#c79c6c', handle: '#b8955c', metal: 0.9 },
-  { name: 'Beż / kaszmir', front: '#d5ccbe', wood: '#cfa877', handle: '#262626', metal: 0.6 },
-  { name: 'Szary jasny', front: '#c8c8c5', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Szałwia', front: '#9ea893', wood: '#c9a06f', handle: '#b8955c', metal: 0.9 },
-  { name: 'Butelkowa zieleń', front: '#2f4a3d', wood: '#c9a06f', handle: '#b8955c', metal: 0.9 },
-  { name: 'Granat', front: '#2c3a52', wood: '#c79c6c', handle: '#b8955c', metal: 0.9 },
-  { name: 'Grafit / antracyt', front: '#3b3d40', wood: '#80583a', handle: '#b8955c', metal: 0.9 },
-  { name: 'Czarny mat', front: '#232323', wood: '#c79c6c', handle: '#b8955c', metal: 0.9, rough: 0.7 },
-  { name: 'Dąb bielony', front: '#e3d6bf', kind: 'wood', wood: '#e3d6bf', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Dąb jasny', front: '#dcc196', kind: 'wood', wood: '#dcc196', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Dąb naturalny', front: '#c79c6c', kind: 'wood', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Dąb miodowy', front: '#c58b4e', kind: 'wood', wood: '#c58b4e', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Dąb szary (sonoma)', front: '#a99c88', kind: 'wood', wood: '#a99c88', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Dąb wędzony', front: '#5e4431', kind: 'wood', wood: '#5e4431', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Orzech', front: '#7a5236', kind: 'wood', wood: '#7a5236', handle: '#1e1e1e', metal: 0.6 },
-  { name: 'Wenge', front: '#3f2c22', kind: 'wood', wood: '#3f2c22', handle: '#b8955c', metal: 0.9 },
-  { name: 'Stal szczotkowana', front: '#aeb0b3', kind: 'steel', wood: '#c79c6c', handle: '#2a2a2a', metal: 0.6 },
+  { name: 'Kość słoniowa', front: '#e9e1d0', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Kremowy beż', front: '#e2d6c0', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Beż piaskowy', front: '#d6c7ab', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Beż kaszmir', front: '#cdbfa8', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Greige (beż-szary)', front: '#bfb5a6', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Taupe / mokka', front: '#9e8e7e', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Szary perłowy', front: '#d9d9d6', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Szary jasny', front: '#c4c5c2', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Szary kamienny', front: '#a6a7a4', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Szary średni', front: '#8a8c8b', wood: '#c79c6c', handle: '#1e1e1e', metal: 0.6 },
+  { name: 'Szary łupek', front: '#6a6d6f', wood: '#c79c6c', handle: '#c4c4c2', metal: 0.9 },
+  { name: 'Grafit', front: '#45484b', wood: '#c79c6c', handle: '#c4c4c2', metal: 0.9 },
+  { name: 'Antracyt', front: '#34373a', wood: '#c79c6c', handle: '#c4c4c2', metal: 0.9 },
 ];
 function applyScheme(s) {
   const wood = s.kind === 'wood', steel = s.kind === 'steel';
@@ -772,7 +761,6 @@ const baseHang = new THREE.Group(); baseHang.visible = false;   // wall-hung var
     parent.add(finish(new THREE.Mesh(geo, mat)));
   }
   zg.add(baseLow);                                     // parts below 28 cm: hidden when the base units hang on the wall
-  zg.add(baseHang);
   box(baseHang, M.wall, 0, UZ, 0, HANG, 0, KOM);         // built out 20 cm under the hanging cabinets, flush with the chimney
   wedge(M.front, KOM, DB + 0.6, 0, yP, baseLow);       // plinth
   wedge(M.front, KOM, DB, yP, HANG, baseLow);           // base filler (lower)
@@ -1126,24 +1114,6 @@ const SLATS = [
   { name: 'Dąb jasny', color: '#dcc196' },
   { name: 'Dąb miodowy', color: '#c58b4e' },
   { name: 'Dąb szary (sonoma)', color: '#a99c88' },
-  { name: 'Tik', color: '#9a6a3f' },
-  { name: 'Orzech', color: '#7a5236' },
-  { name: 'Dąb wędzony', color: '#4e3726' },
-  { name: 'Wenge', color: '#3d2b22' },
-  { name: 'Jak drzwi (orzech)', color: '#b4805e' },
-  { name: 'Biały mat', color: '#ecebe7', paint: true },
-  { name: 'Szary / antracyt', color: '#4a4c4f', paint: true },
-  { name: 'Czarny mat', color: '#2b2a28', paint: true },
-  { name: 'Szałwia', color: '#9ea893', paint: true },
-];
-const slatsEl = document.getElementById('slats');
-let curSlat = null, curTop = null, darkK = 0;
-const TOPS = [
-  { name: 'Dąb naturalny', color: '#c79c6c' },
-  { name: 'Dąb bielony', color: '#e4d8c4' },
-  { name: 'Dąb jasny', color: '#dcc196' },
-  { name: 'Dąb miodowy', color: '#c58b4e' },
-  { name: 'Dąb szary (sonoma)', color: '#a99c88' },
   { name: 'Buk', color: '#d4a574' },
   { name: 'Jesion', color: '#e0cfae' },
   { name: 'Tik', color: '#9a6a3f' },
@@ -1153,9 +1123,12 @@ const TOPS = [
   { name: 'Jak drzwi (orzech)', color: '#b4805e' },
   { name: 'Biały mat', color: '#ecebe7', paint: true },
   { name: 'Beton / kamień szary', color: '#9d9b97', paint: true },
+  { name: 'Szary / antracyt', color: '#4a4c4f', paint: true },
   { name: 'Czarny mat', color: '#2b2a28', paint: true },
+  { name: 'Szałwia', color: '#9ea893', paint: true },
 ];
-const topsEl = document.getElementById('tops');
+const slatsEl = document.getElementById('slats');
+let curSlat = null, curTop = null, darkK = 0;
 function applyTop(c) {
   curTop = c; M.top.roughness = c.paint ? 0.6 : 0.45;
   M.top.map = c.paint ? null : grainTex; M.top.normalMap = c.paint ? null : grainNrm; M.top.needsUpdate = true;
@@ -1171,7 +1144,7 @@ function applyWoodTone() {                      // one slider darkens the door, 
 function applySlat(c) {
   curSlat = c; M.slat.roughness = c.paint ? 0.65 : 0.5;
   M.slat.map = c.paint ? null : grainTex; M.slat.normalMap = c.paint ? null : grainNrm; M.slat.needsUpdate = true;
-  applyWoodTone();
+  applyTop(c);                                    // countertop always matches the slats
 }
 const darkEl = document.getElementById('dark'), darkVal = document.getElementById('darkVal');
 darkEl.addEventListener('input', () => {
@@ -1180,8 +1153,7 @@ darkEl.addEventListener('input', () => {
   if (ptOn && pt) { pt.updateMaterials(); pt.reset(); }
 });
 picker(slatsEl, SLATS, c => c.paint ? 'paint' : 'wood', applySlat, document.getElementById('slatName'));
-picker(topsEl, TOPS, c => c.paint ? 'paint' : 'wood', applyTop, document.getElementById('topName'));
-applySlat(SLATS[0]); applyTop(TOPS[0]);
+applySlat(SLATS[0]);
 let doorsOpen = 0, doorsTarget = 0;
 const doorsBtn = document.getElementById('doors');
 doorsBtn.addEventListener('click', () => {
@@ -1202,13 +1174,6 @@ lightBtn.addEventListener('click', () => {
   M.downlight.emissiveIntensity = flat ? 0 : 6;
   lightBtn.textContent = flat ? 'Włącz cienie i światła' : 'Wyłącz cienie i światła';
   lightBtn.classList.toggle('on', flat); invalidate(true);
-});
-const hangBtn = document.getElementById('hangBtn');
-hangBtn.addEventListener('click', () => {
-  if (ptOn) stopPT();
-  baseLow.visible = !baseLow.visible; baseHang.visible = !baseLow.visible;
-  hangBtn.textContent = baseLow.visible ? 'Szafki dolne wiszące (28 cm nad podłogą)' : 'Szafki dolne stojące (na base molding)';
-  hangBtn.classList.toggle('on', !baseLow.visible); invalidate(true);
 });
 const furnBtn = document.getElementById('furnBtn');
 furnBtn.addEventListener('click', () => {
